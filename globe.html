@@ -1,0 +1,2173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>COBE v2 Inspired Globe</title>
+  <style>
+    :root {
+      --bg-0: #02050b;
+      --bg-1: #07111f;
+      --panel: rgba(10, 16, 28, 0.7);
+      --panel-border: rgba(255, 255, 255, 0.14);
+      --panel-soft: rgba(255, 255, 255, 0.08);
+      --text: #f3f7ff;
+      --muted: rgba(221, 235, 255, 0.65);
+      --accent: #7ee7ff;
+      --accent-2: #8b9dff;
+      --danger: #ff839f;
+      --shadow: 0 18px 80px rgba(0, 0, 0, 0.5);
+      --cobe-visible-marker: 1;
+      color-scheme: dark;
+      font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(70, 110, 160, 0.12), transparent 28%),
+        radial-gradient(circle at 80% 18%, rgba(108, 160, 255, 0.14), transparent 30%),
+        radial-gradient(circle at 50% 100%, rgba(45, 95, 180, 0.12), transparent 38%),
+        linear-gradient(180deg, #050913 0%, #03060c 52%, #040814 100%);
+      color: var(--text);
+      user-select: none;
+    }
+
+    body::before,
+    body::after {
+      content: "";
+      position: fixed;
+      inset: -20%;
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    body::before {
+      background:
+        radial-gradient(1px 1px at 18% 22%, rgba(255, 255, 255, 0.9) 45%, transparent 55%),
+        radial-gradient(1px 1px at 34% 67%, rgba(173, 212, 255, 0.72) 45%, transparent 55%),
+        radial-gradient(1px 1px at 76% 28%, rgba(255, 255, 255, 0.72) 45%, transparent 55%),
+        radial-gradient(1.2px 1.2px at 62% 76%, rgba(181, 212, 255, 0.72) 45%, transparent 55%),
+        radial-gradient(1px 1px at 83% 70%, rgba(255, 255, 255, 0.8) 45%, transparent 55%);
+      background-size: 340px 340px, 440px 440px, 600px 600px, 520px 520px, 720px 720px;
+      opacity: 0.72;
+      animation: starDrift 140s linear infinite;
+      mix-blend-mode: screen;
+    }
+
+    body::after {
+      background:
+        radial-gradient(circle at 50% 50%, rgba(155, 199, 255, 0.08), transparent 38%),
+        radial-gradient(circle at 50% 50%, rgba(255, 255, 255, 0.03), transparent 62%);
+      filter: blur(80px);
+      opacity: 0.6;
+    }
+
+    #app {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      overflow: hidden;
+      touch-action: none;
+    }
+
+    #scene,
+    #overlay {
+      position: absolute;
+      inset: 0;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+      cursor: grab;
+    }
+
+    canvas.dragging {
+      cursor: grabbing;
+    }
+
+    #overlay {
+      pointer-events: none;
+      overflow: hidden;
+    }
+
+    .marker {
+      position: absolute;
+      left: var(--x, 0px);
+      top: var(--y, 0px);
+      transform: translate3d(0, 0, 0) scale(var(--scale, 1));
+      transform-origin: 0 0;
+      opacity: var(--cobe-visible-marker, 0);
+      transition: opacity 0.3s ease, filter 0.3s ease, transform 0.3s ease;
+      pointer-events: auto;
+      will-change: transform, opacity, filter;
+      anchor-scope: --marker-anchor;
+      z-index: 4;
+    }
+
+    .marker:hover {
+      transform: translate3d(0, 0, 0) scale(calc(var(--scale, 1) * 1.08));
+      filter: brightness(1.12) saturate(1.16) blur(0.2px);
+    }
+
+    .marker button {
+      display: block;
+      position: relative;
+      min-width: 0;
+      appearance: none;
+      border: 0;
+      background: transparent;
+      color: inherit;
+      padding: 0;
+      margin: 0;
+      overflow: visible;
+      cursor: pointer;
+      pointer-events: auto;
+    }
+
+    .marker button:focus-visible {
+      outline: none;
+    }
+
+    .marker-anchor {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 0;
+      height: 0;
+      anchor-name: --marker-anchor;
+      pointer-events: none;
+    }
+
+    .marker-dot {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      background:
+        radial-gradient(circle at 28% 28%, rgba(255, 255, 255, 1), var(--marker-color, #7ee7ff) 52%, rgba(126, 231, 255, 0) 72%);
+      box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.28),
+        0 0 16px var(--marker-color, #7ee7ff);
+    }
+
+    .marker-dot::after {
+      content: "";
+      position: absolute;
+      inset: -8px;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.52);
+      opacity: 0.45;
+      transform: scale(0.7);
+    }
+
+    .pulse {
+      animation: pulse 2s infinite ease-in-out;
+    }
+
+    .pulse::after {
+      animation: pulseRing 2s infinite ease-in-out;
+    }
+
+    .marker-stem {
+      position: absolute;
+      left: 0;
+      top: -18px;
+      width: 1px;
+      height: 16px;
+      transform: translateX(-50%);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.72));
+      box-shadow: 0 0 10px rgba(126, 231, 255, 0.24);
+      pointer-events: none;
+    }
+
+    .marker-label {
+      position: absolute;
+      left: 0;
+      top: -24px;
+      transform: translate(-50%, -100%);
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      min-width: 0;
+      padding: 0;
+      border: 0;
+      background: transparent;
+      box-shadow: none;
+      backdrop-filter: none;
+      white-space: nowrap;
+      font-size: 9px;
+      letter-spacing: 0.08em;
+      color: rgba(243, 247, 255, 0.98);
+      text-shadow: 0 1px 2px rgba(0, 0, 0, 0.32);
+      pointer-events: none;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    @supports (position-anchor: --marker-anchor) {
+      .marker-label {
+        position-anchor: --marker-anchor;
+        left: anchor(center);
+        top: anchor(top);
+        transform: translate(-50%, calc(-100% - 24px));
+      }
+    }
+
+    .marker-label .flag {
+      font-size: 10px;
+      filter: saturate(1.15);
+    }
+
+    .marker-name {
+      display: block;
+      max-width: none;
+      overflow: visible;
+      text-overflow: clip;
+    }
+
+    .toolbar,
+    .footer,
+    .status-chip,
+    .stats-card {
+      position: absolute;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      z-index: 6;
+    }
+
+    .toolbar {
+      top: 22px;
+      left: 22px;
+      flex-wrap: wrap;
+      max-width: min(72vw, 460px);
+    }
+
+    .toolbar button,
+    .panel button,
+    .lightbox button {
+      appearance: none;
+      border: 0;
+      cursor: pointer;
+    }
+
+    .toolbar button,
+    .status-chip,
+    .stats-card,
+    .footer,
+    .panel,
+    .panel-upload,
+    .lightbox-content {
+      border: 1px solid var(--panel-border);
+      background:
+        linear-gradient(140deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04));
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px) saturate(140%);
+    }
+
+    .toolbar button,
+    .status-chip {
+      min-height: 42px;
+      padding: 0 14px;
+      border-radius: 999px;
+      color: var(--text);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+    }
+
+    .toolbar button:hover,
+    .toolbar button.active {
+      transform: translateY(-1px);
+      border-color: rgba(126, 231, 255, 0.45);
+      background:
+        linear-gradient(140deg, rgba(126, 231, 255, 0.26), rgba(255, 255, 255, 0.06));
+    }
+
+    .status-chip {
+      top: 22px;
+      right: 22px;
+      color: rgba(243, 247, 255, 0.8);
+      pointer-events: none;
+    }
+
+    .stats-card {
+      top: 74px;
+      right: 22px;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 8px;
+      min-width: 184px;
+      padding: 14px;
+      border-radius: 22px;
+    }
+
+    .stats-title {
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(226, 233, 255, 0.58);
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 8px;
+    }
+
+    .stat-block {
+      min-width: 0;
+      padding: 10px 12px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .stat-value {
+      display: block;
+      font-size: 24px;
+      line-height: 1;
+      letter-spacing: -0.04em;
+      color: rgba(255, 255, 255, 0.96);
+      margin-bottom: 4px;
+    }
+
+    .stat-label {
+      display: block;
+      font-size: 10px;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(226, 233, 255, 0.58);
+    }
+
+    .footer {
+      left: 22px;
+      bottom: 22px;
+      max-width: min(420px, calc(100vw - 44px));
+      padding: 14px 18px;
+      border-radius: 18px;
+      font-size: 12px;
+      line-height: 1.55;
+      color: rgba(230, 238, 255, 0.78);
+    }
+
+    .footer strong {
+      display: block;
+      margin-bottom: 6px;
+      color: rgba(255, 255, 255, 0.94);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-size: 11px;
+    }
+
+    .search-sheet {
+      position: absolute;
+      top: 74px;
+      left: 22px;
+      width: min(420px, calc(100vw - 44px));
+      padding: 18px;
+      border-radius: 24px;
+      border: 1px solid var(--panel-border);
+      background:
+        linear-gradient(140deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04));
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px) saturate(140%);
+      z-index: 7;
+      display: grid;
+      gap: 12px;
+      transform: translateY(-10px);
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 0.25s ease, opacity 0.25s ease;
+    }
+
+    .search-sheet.open {
+      transform: translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .search-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .search-title {
+      margin: 0;
+      font-size: 13px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.94);
+    }
+
+    .search-subtitle {
+      margin: 4px 0 0;
+      font-size: 12px;
+      line-height: 1.45;
+      color: rgba(226, 233, 255, 0.64);
+    }
+
+    .search-close {
+      width: 36px;
+      height: 36px;
+      border-radius: 999px;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.14);
+    }
+
+    .search-fields {
+      display: grid;
+      gap: 10px;
+    }
+
+    .search-field {
+      display: grid;
+      gap: 6px;
+    }
+
+    .search-field label {
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(226, 233, 255, 0.58);
+    }
+
+    .search-field input {
+      width: 100%;
+      min-height: 44px;
+      padding: 0 14px;
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(6, 10, 18, 0.42);
+      color: var(--text);
+      font: inherit;
+      outline: none;
+    }
+
+    .search-field input::placeholder {
+      color: rgba(226, 233, 255, 0.32);
+    }
+
+    .search-results {
+      display: grid;
+      gap: 8px;
+      max-height: min(42vh, 360px);
+      overflow: auto;
+      padding-right: 4px;
+    }
+
+    .search-results.empty {
+      min-height: 72px;
+      align-content: start;
+    }
+
+    .search-message {
+      font-size: 12px;
+      line-height: 1.5;
+      color: rgba(226, 233, 255, 0.56);
+      padding: 12px 2px 4px;
+    }
+
+    .search-message.error {
+      color: rgba(255, 160, 180, 0.86);
+    }
+
+    .search-result {
+      width: 100%;
+      padding: 12px 14px;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text);
+      text-align: left;
+      transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+    }
+
+    .search-result:hover {
+      transform: translateY(-1px);
+      border-color: rgba(126, 231, 255, 0.36);
+      background: rgba(126, 231, 255, 0.08);
+    }
+
+    .search-result strong {
+      display: block;
+      font-size: 13px;
+      font-weight: 600;
+      margin-bottom: 4px;
+    }
+
+    .search-result span {
+      display: block;
+      font-size: 11px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: rgba(226, 233, 255, 0.56);
+    }
+
+    .panel {
+      position: absolute;
+      inset: 0 0 0 auto;
+      width: min(420px, 100vw);
+      padding: 22px;
+      border-left-width: 1px;
+      border-radius: 28px 0 0 28px;
+      transform: translateX(100%);
+      transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1);
+      z-index: 8;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .panel.open {
+      transform: translateX(0);
+    }
+
+    .panel-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
+    }
+
+    .panel-header h2 {
+      margin: 0;
+      font-size: clamp(26px, 4vw, 34px);
+      font-weight: 700;
+      letter-spacing: -0.03em;
+    }
+
+    .panel-header .eyebrow {
+      margin-bottom: 6px;
+      color: rgba(226, 233, 255, 0.58);
+      font-size: 11px;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+    }
+
+    .panel-meta {
+      color: rgba(226, 233, 255, 0.68);
+      font-size: 12px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .panel-close {
+      min-width: 44px;
+      height: 44px;
+      border-radius: 999px;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      transition: transform 0.25s ease, background 0.25s ease;
+    }
+
+    .panel-close:hover {
+      transform: translateY(-1px);
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    .panel-section {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .panel-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: auto;
+      padding-top: 6px;
+    }
+
+    .panel-section label,
+    .panel-upload-label {
+      font-size: 11px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(226, 233, 255, 0.6);
+    }
+
+    textarea {
+      width: 100%;
+      min-height: 160px;
+      padding: 16px 18px;
+      resize: vertical;
+      border-radius: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background: rgba(6, 10, 18, 0.46);
+      color: var(--text);
+      font: inherit;
+      line-height: 1.6;
+      outline: none;
+      box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+    }
+
+    textarea::placeholder {
+      color: rgba(226, 233, 255, 0.32);
+    }
+
+    .panel-upload {
+      display: grid;
+      place-items: center;
+      min-height: 94px;
+      border-radius: 22px;
+      padding: 16px;
+      border-style: dashed;
+      text-align: center;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .panel-upload input {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+    }
+
+    .panel-upload strong {
+      display: block;
+      margin-bottom: 6px;
+      font-size: 13px;
+      font-weight: 600;
+      color: rgba(255, 255, 255, 0.92);
+    }
+
+    .panel-upload span {
+      color: rgba(226, 233, 255, 0.6);
+      font-size: 12px;
+      line-height: 1.45;
+    }
+
+    .photo-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 12px;
+      min-height: 80px;
+    }
+
+    .photo-grid.empty::before {
+      content: "No photos yet. Upload images to pin memories to this location.";
+      padding: 18px;
+      border-radius: 22px;
+      color: rgba(226, 233, 255, 0.52);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px dashed rgba(255, 255, 255, 0.1);
+      font-size: 12px;
+      line-height: 1.55;
+      grid-column: 1 / -1;
+    }
+
+    .photo-card {
+      position: relative;
+      overflow: hidden;
+      aspect-ratio: 1 / 1;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.06);
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
+    }
+
+    .photo-card img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      transition: transform 0.35s ease, filter 0.35s ease;
+      cursor: pointer;
+    }
+
+    .photo-card:hover img {
+      transform: scale(1.05);
+      filter: saturate(1.08) contrast(1.02);
+    }
+
+    .photo-remove {
+      position: absolute;
+      top: 10px;
+      right: 10px;
+      width: 28px;
+      height: 28px;
+      border-radius: 999px;
+      background: rgba(4, 6, 12, 0.68);
+      color: white;
+      font-size: 16px;
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      opacity: 0;
+      transition: opacity 0.25s ease, transform 0.25s ease;
+    }
+
+    .photo-card:hover .photo-remove {
+      opacity: 1;
+      transform: translateY(-1px);
+    }
+
+    .save-indicator {
+      min-height: 20px;
+      color: rgba(126, 231, 255, 0.82);
+      font-size: 11px;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+    }
+
+    .danger-button {
+      min-height: 42px;
+      padding: 0 16px;
+      border-radius: 999px;
+      color: rgba(255, 230, 236, 0.96);
+      border: 1px solid rgba(255, 131, 159, 0.26);
+      background: linear-gradient(140deg, rgba(255, 131, 159, 0.18), rgba(255, 255, 255, 0.04));
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease, opacity 0.25s ease;
+    }
+
+    .danger-button:hover:not(:disabled) {
+      transform: translateY(-1px);
+      border-color: rgba(255, 131, 159, 0.54);
+      background: linear-gradient(140deg, rgba(255, 131, 159, 0.28), rgba(255, 255, 255, 0.06));
+    }
+
+    .danger-button:disabled {
+      opacity: 0.42;
+      cursor: not-allowed;
+    }
+
+    .lightbox {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px;
+      background: rgba(2, 5, 11, 0.76);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      z-index: 12;
+    }
+
+    .lightbox.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .lightbox-content {
+      position: relative;
+      max-width: min(92vw, 1100px);
+      max-height: 90vh;
+      padding: 14px;
+      border-radius: 28px;
+    }
+
+    .lightbox img {
+      display: block;
+      max-width: min(88vw, 1040px);
+      max-height: calc(90vh - 28px);
+      border-radius: 18px;
+      object-fit: contain;
+    }
+
+    .lightbox button {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+      width: 40px;
+      height: 40px;
+      border-radius: 999px;
+      background: rgba(4, 6, 12, 0.72);
+      color: white;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+    }
+
+    @keyframes pulse {
+      0%,
+      100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
+      }
+      50% {
+        transform: translate(-50%, -50%) scale(1.18);
+        opacity: 0.86;
+      }
+    }
+
+    @keyframes pulseRing {
+      0% {
+        opacity: 0.75;
+        transform: scale(0.7);
+      }
+      50% {
+        opacity: 0.1;
+        transform: scale(1.75);
+      }
+      100% {
+        opacity: 0;
+        transform: scale(2.2);
+      }
+    }
+
+    @keyframes starDrift {
+      from {
+        transform: translate3d(0, 0, 0) rotate(0.001deg);
+      }
+      to {
+        transform: translate3d(-2%, -4%, 0) rotate(0.001deg);
+      }
+    }
+
+    @media (max-width: 720px) {
+      .toolbar,
+      .status-chip,
+      .stats-card {
+        top: 14px;
+      }
+
+      .toolbar {
+        left: 14px;
+        right: 14px;
+        max-width: none;
+      }
+
+      .status-chip {
+        display: none;
+      }
+
+      .stats-card {
+        right: 14px;
+        left: auto;
+        min-width: 156px;
+        padding: 12px;
+      }
+
+      .footer {
+        left: 14px;
+        right: 14px;
+        bottom: 14px;
+        max-width: none;
+      }
+
+      .search-sheet {
+        top: 116px;
+        left: 14px;
+        right: 14px;
+        width: auto;
+      }
+
+      .panel {
+        padding: 18px;
+        border-radius: 24px 24px 0 0;
+        width: 100vw;
+        inset: auto 0 0 0;
+        height: min(78vh, 720px);
+        transform: translateY(102%);
+      }
+
+      .panel.open {
+        transform: translateY(0);
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <div id="scene"></div>
+    <div id="overlay"></div>
+
+    <div class="toolbar">
+      <button id="add-location" type="button">Add New Location</button>
+      <button id="import-csv" type="button">Import CSV</button>
+      <button id="export-csv" type="button">Export CSV</button>
+      <button id="reset-camera" type="button">Reset Camera</button>
+      <button id="toggle-autorotate" type="button">Pause Auto Rotate</button>
+    </div>
+    <input id="csv-import-input" type="file" accept=".csv,text/csv" hidden />
+
+    <section id="search-sheet" class="search-sheet" hidden aria-hidden="true">
+      <div class="search-header">
+        <div>
+          <h3 class="search-title">Add City via Geoapify</h3>
+          <p class="search-subtitle">Search real cities and pin their exact coordinates to the globe.</p>
+        </div>
+        <button id="search-close" class="search-close" type="button" aria-label="Close city search">×</button>
+      </div>
+
+      <div class="search-fields">
+        <div class="search-field">
+          <label for="place-query">City Search</label>
+          <input id="place-query" type="text" autocomplete="off" placeholder="Search for a city" />
+        </div>
+      </div>
+
+      <div id="search-results" class="search-results empty">
+        <div id="search-message" class="search-message">Search for a city to add it to the globe.</div>
+      </div>
+    </section>
+
+    <div id="status" class="status-chip">Drag to orbit. Scroll to zoom. Click markers for notes and photos.</div>
+    <div class="stats-card" aria-live="polite">
+      <div class="stats-title">Visited</div>
+      <div class="stats-grid">
+        <div class="stat-block">
+          <span id="countries-count" class="stat-value">0</span>
+          <span class="stat-label">Countries</span>
+        </div>
+        <div class="stat-block">
+          <span id="cities-count" class="stat-value">0</span>
+          <span class="stat-label">Cities</span>
+        </div>
+      </div>
+    </div>
+
+    <aside id="panel" class="panel" aria-hidden="true">
+      <div class="panel-header">
+        <div>
+          <div class="eyebrow">Location Capsule</div>
+          <h2 id="panel-title">Select a marker</h2>
+          <div id="panel-meta" class="panel-meta">Choose a city marker on the globe.</div>
+        </div>
+        <button id="panel-close" class="panel-close" type="button" aria-label="Close panel">×</button>
+      </div>
+
+      <div class="panel-section">
+        <label for="notes">Notes</label>
+        <textarea id="notes" placeholder="Capture anything memorable about this place."></textarea>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-upload-label">Photos</div>
+        <label class="panel-upload" for="photo-upload">
+          <input id="photo-upload" type="file" accept="image/*" multiple />
+          <div>
+            <strong>Drop images here or click to upload</strong>
+            <span>Photos are compressed and stored in localStorage for this location.</span>
+          </div>
+        </label>
+      </div>
+
+      <div class="panel-section">
+        <div class="panel-upload-label">Gallery</div>
+        <div id="photo-grid" class="photo-grid empty"></div>
+      </div>
+
+      <div class="panel-actions">
+        <button id="remove-location" class="danger-button" type="button" disabled>Remove City</button>
+      </div>
+
+      <div id="save-indicator" class="save-indicator"></div>
+    </aside>
+
+    <div id="lightbox" class="lightbox" aria-hidden="true">
+      <div class="lightbox-content">
+        <button id="lightbox-close" type="button" aria-label="Close photo">×</button>
+        <img id="lightbox-image" alt="Preview" />
+      </div>
+    </div>
+
+  </div>
+
+  <script src="/config.js"></script>
+  <script>
+    (async () => {
+      async function importCobe() {
+        const sources = [
+          "https://esm.sh/cobe@0.6.3?bundle",
+          "https://cdn.jsdelivr.net/npm/cobe@0.6.3/+esm",
+          "https://unpkg.com/cobe@0.6.3?module"
+        ];
+
+        for (const src of sources) {
+          try {
+            const module = await import(src);
+            if (module?.default) {
+              return module.default;
+            }
+          } catch (error) {
+            console.warn(`COBE import failed: ${src}`, error);
+          }
+        }
+
+        throw new Error("Unable to load COBE from the configured CDNs.");
+      }
+
+      const STORAGE_KEY = "codex-cobe-globe-city-data";
+      const CUSTOM_LOCATION_KEY = "codex-cobe-globe-custom-locations";
+      const GEOAPIFY_API_KEY = window.__APP_CONFIG__?.GEOAPIFY_API_KEY || "";
+      const overlay = document.getElementById("overlay");
+      const panel = document.getElementById("panel");
+      const panelTitle = document.getElementById("panel-title");
+      const panelMeta = document.getElementById("panel-meta");
+      const notesField = document.getElementById("notes");
+      const photoUpload = document.getElementById("photo-upload");
+      const photoGrid = document.getElementById("photo-grid");
+      const removeLocationButton = document.getElementById("remove-location");
+      const saveIndicator = document.getElementById("save-indicator");
+      const addLocationButton = document.getElementById("add-location");
+      const importCsvButton = document.getElementById("import-csv");
+      const exportCsvButton = document.getElementById("export-csv");
+      const csvImportInput = document.getElementById("csv-import-input");
+      const resetCameraButton = document.getElementById("reset-camera");
+      const toggleAutorotateButton = document.getElementById("toggle-autorotate");
+      const statusChip = document.getElementById("status");
+      const countriesCount = document.getElementById("countries-count");
+      const citiesCount = document.getElementById("cities-count");
+      const lightbox = document.getElementById("lightbox");
+      const lightboxImage = document.getElementById("lightbox-image");
+      const sceneHost = document.getElementById("scene");
+      const searchSheet = document.getElementById("search-sheet");
+      const searchCloseButton = document.getElementById("search-close");
+      const placeQueryInput = document.getElementById("place-query");
+      const searchResults = document.getElementById("search-results");
+
+      let createGlobe;
+      try {
+        createGlobe = await importCobe();
+      } catch (error) {
+        console.error(error);
+        statusChip.textContent = "COBE failed to load. Check network access and reload.";
+        return;
+      }
+
+      const colorPool = ["#7ee7ff", "#8cf0d1", "#f3f7ff", "#9fb5ff", "#ff9c9c", "#ffb86b", "#f7a7ff"];
+      const cityData = loadStorage(STORAGE_KEY, {});
+      const storedLocations = loadStorage(CUSTOM_LOCATION_KEY, []);
+      const filteredStoredLocations = storedLocations.filter((location) => {
+        const id = String(location.id || "");
+        return id.startsWith("geoapify-") || id.startsWith("geonames-");
+      });
+      const needsColorRestore = filteredStoredLocations.some((location) => !location.color || location.color.toLowerCase() === "#111111");
+      const customLocations = filteredStoredLocations.map((location, index) => ({
+        ...location,
+        color: !location.color || location.color.toLowerCase() === "#111111"
+          ? colorPool[index % colorPool.length]
+          : location.color
+      }));
+      const AUTO_ROTATE_SPEED = 0.0009;
+      const DEFAULT_GLOBE_SCALE = 1.12;
+      const allLocations = [...customLocations];
+      const locationMap = new Map(allLocations.map((location) => [location.id, location]));
+      const cityMarkers = new Map();
+
+      let activeLocation = null;
+      let searchSheetOpen = false;
+      let autoRotate = true;
+      let saveTimer = null;
+      let width = window.innerWidth;
+      let height = window.innerHeight;
+      let globeInstance = null;
+      let dragPointerId = null;
+      let dragStartX = 0;
+      let dragStartY = 0;
+      let lastPointerX = 0;
+      let lastPointerY = 0;
+      let dragMoved = false;
+      let lastRenderTime = performance.now();
+      let placeSearchAbortController = null;
+      let placeSearchTimer = null;
+      let statusTimer = null;
+
+      const canvas = document.createElement("canvas");
+      canvas.id = "globe-canvas";
+      canvas.width = Math.round(width * Math.min(window.devicePixelRatio, 2));
+      canvas.height = Math.round(height * Math.min(window.devicePixelRatio, 2));
+      canvas.setAttribute("aria-label", "Interactive globe");
+      sceneHost.appendChild(canvas);
+
+      const projection = {
+        phi: 0.24,
+        theta: 0.32,
+        scale: DEFAULT_GLOBE_SCALE,
+        cx: width / 2,
+        cy: height / 2,
+        radius: Math.min(width, height) * 0.31
+      };
+
+      const motion = {
+        basePhi: 0.24,
+        interactionPhi: 0,
+        targetInteractionPhi: 0,
+        interactionTheta: 0,
+        targetInteractionTheta: 0,
+        currentScale: DEFAULT_GLOBE_SCALE,
+        targetScale: DEFAULT_GLOBE_SCALE
+      };
+
+      function loadStorage(key, fallback) {
+        try {
+          const value = localStorage.getItem(key);
+          return value ? JSON.parse(value) : fallback;
+        } catch (error) {
+          console.warn("Storage load failed", error);
+          return fallback;
+        }
+      }
+
+      function saveStorage(key, value) {
+        localStorage.setItem(key, JSON.stringify(value));
+      }
+
+      if (storedLocations.length !== customLocations.length || needsColorRestore) {
+        saveStorage(CUSTOM_LOCATION_KEY, customLocations);
+      }
+
+      function ensureLocationData(locationId) {
+        if (!cityData[locationId]) {
+          cityData[locationId] = { notes: "", photos: [] };
+        }
+        return cityData[locationId];
+      }
+
+      function flashSaved(message = "Saved locally") {
+        saveIndicator.textContent = message;
+        clearTimeout(saveTimer);
+        saveTimer = setTimeout(() => {
+          saveIndicator.textContent = "";
+        }, 1400);
+      }
+
+      function flashStatus(message, duration = 1800) {
+        statusChip.textContent = message;
+        clearTimeout(statusTimer);
+        statusTimer = setTimeout(() => {
+          updateToolbarState();
+        }, duration);
+      }
+
+      function slugify(input) {
+        return input
+          .toLowerCase()
+          .replace(/[^a-z0-9]+/g, "-")
+          .replace(/^-+|-+$/g, "")
+          .slice(0, 32);
+      }
+
+      function clamp(value, min, max) {
+        return Math.min(max, Math.max(min, value));
+      }
+
+      function wrapAngle(value) {
+        const fullTurn = Math.PI * 2;
+        return ((value % fullTurn) + fullTurn) % fullTurn;
+      }
+
+      function latLonToVector(lat, lon, radius = 1) {
+        const latRad = (lat * Math.PI) / 180;
+        const lonRad = (lon * Math.PI) / 180 - Math.PI;
+        const cosLat = Math.cos(latRad);
+        return {
+          x: -cosLat * Math.cos(lonRad) * radius,
+          y: Math.sin(latRad) * radius,
+          z: cosLat * Math.sin(lonRad) * radius
+        };
+      }
+
+      function vectorToLatLon(vector) {
+        const length = Math.hypot(vector.x, vector.y, vector.z) || 1;
+        const x = vector.x / length;
+        const y = vector.y / length;
+        const z = vector.z / length;
+        const lat = (Math.asin(y) * 180) / Math.PI;
+        const lon = (Math.atan2(x, z) * 180) / Math.PI;
+        return { lat, lon };
+      }
+
+      function rotateY(point, angle) {
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        return {
+          x: point.x * cos - point.z * sin,
+          y: point.y,
+          z: point.x * sin + point.z * cos
+        };
+      }
+
+      function rotateX(point, angle) {
+        const cos = Math.cos(angle);
+        const sin = Math.sin(angle);
+        return {
+          x: point.x,
+          y: point.y * cos - point.z * sin,
+          z: point.y * sin + point.z * cos
+        };
+      }
+
+      function viewToGlobe(point) {
+        const theta = projection.theta;
+        const phi = projection.phi;
+        const cosTheta = Math.cos(theta);
+        const sinTheta = Math.sin(theta);
+        const cosPhi = Math.cos(phi);
+        const sinPhi = Math.sin(phi);
+
+        return {
+          x: point.x * cosPhi + point.y * (sinPhi * sinTheta) + point.z * (-sinPhi * cosTheta),
+          y: point.y * cosTheta + point.z * sinTheta,
+          z: point.x * sinPhi + point.y * (-cosPhi * sinTheta) + point.z * (cosPhi * cosTheta)
+        };
+      }
+
+      function globeToView(point) {
+        const theta = projection.theta;
+        const phi = projection.phi;
+        const cosTheta = Math.cos(theta);
+        const sinTheta = Math.sin(theta);
+        const cosPhi = Math.cos(phi);
+        const sinPhi = Math.sin(phi);
+
+        return {
+          x: point.x * cosPhi + point.z * sinPhi,
+          y: point.x * (sinPhi * sinTheta) + point.y * cosTheta + point.z * (-cosPhi * sinTheta),
+          z: point.x * (-sinPhi * cosTheta) + point.y * sinTheta + point.z * (cosPhi * cosTheta)
+        };
+      }
+
+      function projectPoint(point, visibilityBias = 0) {
+        const rotated = globeToView(point);
+        const scaleRadius = projection.radius * projection.scale;
+        return {
+          x: projection.cx + rotated.x * scaleRadius,
+          y: projection.cy - rotated.y * scaleRadius,
+          z: rotated.z,
+          visible: rotated.z > visibilityBias
+        };
+      }
+
+      function screenToLatLon(clientX, clientY) {
+        const rect = canvas.getBoundingClientRect();
+        const radius = projection.radius * projection.scale;
+        const nx = (clientX - rect.left - projection.cx) / radius;
+        const ny = (clientY - rect.top - projection.cy) / radius;
+        const inside = nx * nx + ny * ny;
+        if (inside > 1) {
+          return null;
+        }
+        const nz = Math.sqrt(Math.max(0, 1 - inside));
+        const local = viewToGlobe({ x: nx, y: -ny, z: nz });
+        return vectorToLatLon(local);
+      }
+
+      function hexToRgb01(hex) {
+        const normalized = hex.replace("#", "");
+        const value = normalized.length === 3
+          ? normalized.split("").map((char) => char + char).join("")
+          : normalized;
+        const int = Number.parseInt(value, 16);
+        return [
+          ((int >> 16) & 255) / 255,
+          ((int >> 8) & 255) / 255,
+          (int & 255) / 255
+        ];
+      }
+
+      function flagFromCountryCode(code) {
+        if (!code || code.length !== 2) {
+          return "📍";
+        }
+        return String.fromCodePoint(
+          127397 + code.toUpperCase().charCodeAt(0),
+          127397 + code.toUpperCase().charCodeAt(1)
+        );
+      }
+
+      function normalizeText(value) {
+        return String(value ?? "").trim();
+      }
+
+      function normalizeCoordinate(value) {
+        const numeric = Number.parseFloat(value);
+        return Number.isFinite(numeric) ? Number(numeric.toFixed(6)) : null;
+      }
+
+      const TERRITORY_COUNTRY_OVERRIDES = [
+        { key: "anguilla", codes: ["ai"], terms: ["anguilla"] },
+        { key: "aruba", codes: ["aw"], terms: ["aruba"] },
+        { key: "bermuda", codes: ["bm"], terms: ["bermuda"] },
+        { key: "bonaire", codes: ["bq"], terms: ["bonaire"] },
+        { key: "british virgin islands", codes: ["vg"], terms: ["british virgin islands", "virgin islands, british"] },
+        { key: "cayman islands", codes: ["ky"], terms: ["cayman islands"] },
+        { key: "curacao", codes: ["cw"], terms: ["curacao"] },
+        { key: "faroe islands", codes: ["fo"], terms: ["faroe islands", "faeroe islands"] },
+        { key: "french guiana", codes: ["gf"], terms: ["french guiana"] },
+        { key: "french polynesia", codes: ["pf"], terms: ["french polynesia"] },
+        { key: "gibraltar", codes: ["gi"], terms: ["gibraltar"] },
+        { key: "greenland", codes: ["gl"], terms: ["greenland"] },
+        { key: "guadeloupe", codes: ["gp"], terms: ["guadeloupe"] },
+        { key: "guam", codes: ["gu"], terms: ["guam"] },
+        { key: "guernsey", codes: ["gg"], terms: ["guernsey"] },
+        { key: "hong kong", codes: ["hk"], terms: ["hong kong"] },
+        { key: "isle of man", codes: ["im"], terms: ["isle of man"] },
+        { key: "jersey", codes: ["je"], terms: ["jersey"] },
+        { key: "macau", codes: ["mo"], terms: ["macau", "macao"] },
+        { key: "martinique", codes: ["mq"], terms: ["martinique"] },
+        { key: "mayotte", codes: ["yt"], terms: ["mayotte"] },
+        { key: "montserrat", codes: ["ms"], terms: ["montserrat"] },
+        { key: "new caledonia", codes: ["nc"], terms: ["new caledonia"] },
+        { key: "northern mariana islands", codes: ["mp"], terms: ["northern mariana islands"] },
+        { key: "puerto rico", codes: ["pr"], terms: ["puerto rico"] },
+        { key: "reunion", codes: ["re"], terms: ["reunion", "réunion"] },
+        { key: "saint barthelemy", codes: ["bl"], terms: ["saint barthelemy", "st barthelemy", "saint-barthelemy"] },
+        { key: "saint martin", codes: ["mf"], terms: ["saint martin", "st martin", "saint-martin"] },
+        { key: "saint pierre and miquelon", codes: ["pm"], terms: ["saint pierre and miquelon", "st pierre and miquelon"] },
+        { key: "saba", codes: ["bq"], terms: ["saba"] },
+        { key: "sint eustatius", codes: ["bq"], terms: ["sint eustatius", "saint eustatius"] },
+        { key: "sint maarten", codes: ["sx"], terms: ["sint maarten", "saint maarten"] },
+        { key: "turks and caicos islands", codes: ["tc"], terms: ["turks and caicos", "turks and caicos islands"] },
+        { key: "u.s. virgin islands", codes: ["vi"], terms: ["u.s. virgin islands", "us virgin islands", "united states virgin islands", "virgin islands, u.s."] }
+      ];
+
+      function getTerritoryCountryKey(location) {
+        const countryCode = normalizeText(location.countryCode).toLowerCase();
+        const countryName = normalizeText(location.countryName).toLowerCase();
+        const adminName = normalizeText(location.adminName1).toLowerCase();
+
+        const territoryByName = TERRITORY_COUNTRY_OVERRIDES.find((entry) =>
+          entry.terms.some((term) => countryName === term || adminName === term || countryName.includes(term) || adminName.includes(term))
+        );
+
+        if (territoryByName) {
+          return territoryByName.key;
+        }
+
+        const territoryByCode = TERRITORY_COUNTRY_OVERRIDES.find((entry) => entry.codes.includes(countryCode));
+
+        return territoryByCode?.key || "";
+      }
+
+      function getLocationCountryKey(location) {
+        return getTerritoryCountryKey(location) || normalizeText(location.countryCode || location.countryName).toLowerCase();
+      }
+
+      function getLocationCityKey(location) {
+        return `${normalizeText(location.name).toLowerCase()}|${getLocationCountryKey(location)}`;
+      }
+
+      function makeLocationSignature(location) {
+        return [
+          getLocationCityKey(location),
+          normalizeCoordinate(location.lat),
+          normalizeCoordinate(location.lon)
+        ].join("|");
+      }
+
+      function registerLocation(stored) {
+        customLocations.push(stored);
+        allLocations.push(stored);
+        locationMap.set(stored.id, stored);
+        createCityMarker(stored);
+        ensureLocationData(stored.id);
+      }
+
+      function persistLocationState() {
+        saveStorage(CUSTOM_LOCATION_KEY, customLocations);
+        saveStorage(STORAGE_KEY, cityData);
+        syncGlobeMarkers();
+        updateVisitedStats();
+      }
+
+      function csvEscape(value) {
+        const text = String(value ?? "");
+        return /[",\n]/.test(text) ? `"${text.replace(/"/g, "\"\"")}"` : text;
+      }
+
+      function parseCsvText(text) {
+        const rows = [];
+        let row = [];
+        let cell = "";
+        let inQuotes = false;
+
+        for (let index = 0; index < text.length; index += 1) {
+          const char = text[index];
+
+          if (inQuotes) {
+            if (char === "\"") {
+              if (text[index + 1] === "\"") {
+                cell += "\"";
+                index += 1;
+              } else {
+                inQuotes = false;
+              }
+            } else {
+              cell += char;
+            }
+            continue;
+          }
+
+          if (char === "\"") {
+            inQuotes = true;
+          } else if (char === ",") {
+            row.push(cell);
+            cell = "";
+          } else if (char === "\n") {
+            row.push(cell);
+            if (row.some((value) => value !== "")) {
+              rows.push(row);
+            }
+            row = [];
+            cell = "";
+          } else if (char !== "\r") {
+            cell += char;
+          }
+        }
+
+        row.push(cell);
+        if (row.some((value) => value !== "")) {
+          rows.push(row);
+        }
+
+        return rows;
+      }
+
+      function getCsvValue(row, headerMap, aliases) {
+        for (const alias of aliases) {
+          if (headerMap.has(alias)) {
+            return row[headerMap.get(alias)] ?? "";
+          }
+        }
+        return "";
+      }
+
+      function buildImportedLocation(row, headerMap, rowIndex) {
+        const name = normalizeText(getCsvValue(row, headerMap, ["city", "name"]));
+        const countryCode = normalizeText(getCsvValue(row, headerMap, ["countrycode", "country_code", "iso2", "iso_2"])).toUpperCase();
+        const countryName = normalizeText(getCsvValue(row, headerMap, ["country", "countryname", "country_name"]));
+        const lat = normalizeCoordinate(getCsvValue(row, headerMap, ["lat", "latitude"]));
+        const lon = normalizeCoordinate(getCsvValue(row, headerMap, ["lon", "lng", "longitude"]));
+
+        if (!name || lat === null || lon === null) {
+          return null;
+        }
+
+        const countryToken = countryCode || slugify(countryName) || "xx";
+        return {
+          id: `import-${slugify(name)}-${countryToken}-${rowIndex}-${Math.round((lat + 90) * 1000)}-${Math.round((lon + 180) * 1000)}`,
+          name,
+          flag: flagFromCountryCode(countryCode),
+          lat,
+          lon,
+          color: colorPool[Math.floor(Math.random() * colorPool.length)],
+          countryCode,
+          adminName1: normalizeText(getCsvValue(row, headerMap, ["state", "region", "admin", "adminname1", "admin_name_1"])),
+          countryName
+        };
+      }
+
+      function exportLocationsAsCsv() {
+        const header = ["city", "countryCode", "countryName", "lat", "lon"];
+        const rows = [header.join(",")];
+
+        [...allLocations]
+          .sort((left, right) => {
+            const countryCompare = normalizeText(left.countryName || left.countryCode).localeCompare(normalizeText(right.countryName || right.countryCode));
+            return countryCompare || normalizeText(left.name).localeCompare(normalizeText(right.name));
+          })
+          .forEach((location) => {
+            rows.push([
+              csvEscape(location.name),
+              csvEscape(location.countryCode || ""),
+              csvEscape(location.countryName || ""),
+              normalizeCoordinate(location.lat),
+              normalizeCoordinate(location.lon)
+            ].join(","));
+          });
+
+        const blob = new Blob([rows.join("\n")], { type: "text/csv;charset=utf-8" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "visited-locations.csv";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(url);
+        flashStatus(`Exported ${allLocations.length} locations`);
+      }
+
+      async function handleCsvImport(event) {
+        const file = event.target.files?.[0];
+        if (!file) {
+          return;
+        }
+
+        try {
+          const text = (await file.text()).replace(/^\uFEFF/, "");
+          const rows = parseCsvText(text);
+          if (rows.length < 2) {
+            throw new Error("CSV must include a header row and at least one city row.");
+          }
+
+          const headerMap = new Map(rows[0].map((header, index) => [normalizeText(header).toLowerCase(), index]));
+          const importedSignatures = new Set(allLocations.map((location) => makeLocationSignature(location)));
+          let addedCount = 0;
+          let skippedCount = 0;
+
+          rows.slice(1).forEach((row, index) => {
+            const imported = buildImportedLocation(row, headerMap, index + 1);
+            if (!imported) {
+              skippedCount += 1;
+              return;
+            }
+
+            const signature = makeLocationSignature(imported);
+            if (importedSignatures.has(signature)) {
+              skippedCount += 1;
+              return;
+            }
+
+            importedSignatures.add(signature);
+            registerLocation(imported);
+            addedCount += 1;
+          });
+
+          if (addedCount > 0) {
+            persistLocationState();
+          }
+
+          flashStatus(addedCount > 0 ? `Imported ${addedCount} cities` : "No new cities imported");
+          if (skippedCount > 0) {
+            window.alert(`CSV import complete.\nAdded: ${addedCount}\nSkipped: ${skippedCount}`);
+          }
+        } catch (error) {
+          console.error(error);
+          window.alert(error.message || "CSV import failed.");
+        } finally {
+          event.target.value = "";
+        }
+      }
+
+      function setSearchMessage(message, isError = false) {
+        searchResults.innerHTML = "";
+        searchResults.classList.add("empty");
+        const item = document.createElement("div");
+        item.id = "search-message";
+        item.className = `search-message${isError ? " error" : ""}`;
+        item.textContent = message;
+        searchResults.appendChild(item);
+      }
+
+      function openSearchSheet() {
+        searchSheetOpen = true;
+        searchSheet.hidden = false;
+        searchSheet.classList.add("open");
+        searchSheet.setAttribute("aria-hidden", "false");
+        updateToolbarState();
+        placeQueryInput.focus();
+      }
+
+      function closeSearchSheet() {
+        searchSheetOpen = false;
+        searchSheet.classList.remove("open");
+        searchSheet.setAttribute("aria-hidden", "true");
+        searchSheet.hidden = true;
+        updateToolbarState();
+      }
+
+      function renderPlaceResults(results) {
+        searchResults.innerHTML = "";
+        searchResults.classList.toggle("empty", results.length === 0);
+
+        if (!results.length) {
+          setSearchMessage("No matching cities found. Try a broader search.");
+          return;
+        }
+
+        results.forEach((result) => {
+          const button = document.createElement("button");
+          button.type = "button";
+          button.className = "search-result";
+          const properties = result.properties || result;
+          const name = properties.city || properties.name || properties.formatted || "City";
+          const region = [properties.state, properties.country].filter(Boolean).join(", ");
+          button.innerHTML = `
+            <strong>${flagFromCountryCode((properties.country_code || "").slice(0, 2))} ${name}</strong>
+            <span>${region || "City"} · ${Number(properties.lat).toFixed(2)}°, ${Number(properties.lon).toFixed(2)}°</span>
+          `;
+          button.addEventListener("click", () => {
+            addGeoapifyLocation(properties);
+          });
+          searchResults.appendChild(button);
+        });
+      }
+
+      async function searchPlaces(query) {
+        if (!GEOAPIFY_API_KEY) {
+          setSearchMessage("Geoapify API key not found. Start the local server that reads your .env file.", true);
+          return;
+        }
+
+        if (query.trim().length < 2) {
+          setSearchMessage("Type at least 2 characters to search for a city.");
+          return;
+        }
+
+        if (placeSearchAbortController) {
+          placeSearchAbortController.abort();
+        }
+
+        placeSearchAbortController = new AbortController();
+        setSearchMessage("Searching Geoapify...");
+
+        try {
+          const url = new URL("https://api.geoapify.com/v1/geocode/autocomplete");
+          url.searchParams.set("text", query.trim());
+          url.searchParams.set("type", "city");
+          url.searchParams.set("format", "json");
+          url.searchParams.set("limit", "8");
+          url.searchParams.set("lang", "en");
+          url.searchParams.set("apiKey", GEOAPIFY_API_KEY);
+
+          const response = await fetch(url.toString(), {
+            signal: placeSearchAbortController.signal
+          });
+          const payload = await response.json();
+
+          if (!response.ok) {
+            const errorMessage = payload?.message || `Geoapify request failed with ${response.status}.`;
+            setSearchMessage(errorMessage, true);
+            return;
+          }
+
+          renderPlaceResults(payload.results || payload.features || []);
+        } catch (error) {
+          if (error.name === "AbortError") {
+            return;
+          }
+          console.error(error);
+          setSearchMessage("Geoapify search failed. Check the API key and network connection.", true);
+        }
+      }
+
+      function createCityMarker(location) {
+        const marker = document.createElement("div");
+        marker.className = "marker city-marker";
+        marker.innerHTML = `
+          <button type="button" aria-label="Open ${location.name}">
+            <span class="marker-anchor"></span>
+            <span class="marker-dot pulse" style="--marker-color:${location.color};"></span>
+            <span class="marker-stem"></span>
+            <span class="marker-label">
+              <span class="flag">${location.flag || "📍"}</span>
+              <span class="marker-name">${location.name}</span>
+            </span>
+          </button>
+        `;
+        marker.querySelector("button").addEventListener("click", (event) => {
+          event.stopPropagation();
+          openPanel(location);
+        });
+        overlay.appendChild(marker);
+        cityMarkers.set(location.id, { location, el: marker });
+      }
+
+      function openPanel(location) {
+        activeLocation = location;
+        const data = ensureLocationData(location.id);
+        panelTitle.textContent = `${location.flag || "📍"} ${location.name}`;
+        panelMeta.textContent = `${formatCoord(location.lat, "N", "S")} · ${formatCoord(location.lon, "E", "W")}`;
+        notesField.value = data.notes || "";
+        renderPhotoGrid(data.photos || []);
+        removeLocationButton.disabled = false;
+        syncGlobeMarkers();
+        panel.classList.add("open");
+        panel.setAttribute("aria-hidden", "false");
+      }
+
+      function closePanel(options = {}) {
+        const { skipSave = false } = options;
+        if (!skipSave) {
+          saveActiveLocation();
+        }
+        activeLocation = null;
+        panelTitle.textContent = "Select a marker";
+        panelMeta.textContent = "Choose a city marker on the globe.";
+        notesField.value = "";
+        renderPhotoGrid([]);
+        removeLocationButton.disabled = true;
+        panel.classList.remove("open");
+        panel.setAttribute("aria-hidden", "true");
+        syncGlobeMarkers();
+      }
+
+      function formatCoord(value, positive, negative) {
+        const suffix = value >= 0 ? positive : negative;
+        return `${Math.abs(value).toFixed(2)}° ${suffix}`;
+      }
+
+      function saveActiveLocation() {
+        if (!activeLocation) {
+          return;
+        }
+        const data = ensureLocationData(activeLocation.id);
+        data.notes = notesField.value;
+        saveStorage(STORAGE_KEY, cityData);
+      }
+
+      function renderPhotoGrid(photos) {
+        photoGrid.innerHTML = "";
+        photoGrid.classList.toggle("empty", photos.length === 0);
+        photos.forEach((photo) => {
+          const card = document.createElement("div");
+          card.className = "photo-card";
+          const image = document.createElement("img");
+          image.src = photo.dataUrl;
+          image.alt = photo.name || "Uploaded photo";
+          image.loading = "lazy";
+          image.addEventListener("click", () => {
+            lightboxImage.src = photo.dataUrl;
+            lightbox.classList.add("open");
+            lightbox.setAttribute("aria-hidden", "false");
+          });
+
+          const removeButton = document.createElement("button");
+          removeButton.className = "photo-remove";
+          removeButton.type = "button";
+          removeButton.textContent = "×";
+          removeButton.setAttribute("aria-label", "Remove photo");
+          removeButton.addEventListener("click", (event) => {
+            event.stopPropagation();
+            if (!activeLocation) {
+              return;
+            }
+            const data = ensureLocationData(activeLocation.id);
+            data.photos = data.photos.filter((entry) => entry.id !== photo.id);
+            saveStorage(STORAGE_KEY, cityData);
+            renderPhotoGrid(data.photos);
+            flashSaved("Photo removed");
+          });
+
+          card.appendChild(image);
+          card.appendChild(removeButton);
+          photoGrid.appendChild(card);
+        });
+      }
+
+      function handleNoteInput() {
+        if (!activeLocation) {
+          return;
+        }
+        const data = ensureLocationData(activeLocation.id);
+        data.notes = notesField.value;
+        saveStorage(STORAGE_KEY, cityData);
+        flashSaved();
+      }
+
+      function updateVisitedStats() {
+        const uniqueCities = new Set();
+        const uniqueCountries = new Set();
+
+        allLocations.forEach((location) => {
+          const cityKey = getLocationCityKey(location);
+          if (cityKey) {
+            uniqueCities.add(cityKey);
+          }
+
+          const countryKey = getLocationCountryKey(location);
+          if (countryKey) {
+            uniqueCountries.add(countryKey);
+          }
+        });
+
+        citiesCount.textContent = String(uniqueCities.size);
+        countriesCount.textContent = String(uniqueCountries.size);
+      }
+
+      function removeActiveLocation() {
+        if (!activeLocation) {
+          return;
+        }
+
+        const location = activeLocation;
+        const confirmed = window.confirm(`Remove ${location.name} from the globe? This also deletes its notes and photos.`);
+        if (!confirmed) {
+          return;
+        }
+
+        const customIndex = customLocations.findIndex((entry) => entry.id === location.id);
+        if (customIndex !== -1) {
+          customLocations.splice(customIndex, 1);
+        }
+
+        const allIndex = allLocations.findIndex((entry) => entry.id === location.id);
+        if (allIndex !== -1) {
+          allLocations.splice(allIndex, 1);
+        }
+
+        locationMap.delete(location.id);
+        const markerEntry = cityMarkers.get(location.id);
+        if (markerEntry) {
+          markerEntry.el.remove();
+          cityMarkers.delete(location.id);
+        }
+
+        delete cityData[location.id];
+        persistLocationState();
+        closePanel({ skipSave: true });
+        flashSaved("Location removed");
+      }
+
+      async function compressImage(file) {
+        const bitmap = await createImageBitmap(file);
+        const maxDimension = 1200;
+        const scale = Math.min(1, maxDimension / Math.max(bitmap.width, bitmap.height));
+        const scratch = document.createElement("canvas");
+        scratch.width = Math.max(1, Math.round(bitmap.width * scale));
+        scratch.height = Math.max(1, Math.round(bitmap.height * scale));
+        const context = scratch.getContext("2d");
+        context.drawImage(bitmap, 0, 0, scratch.width, scratch.height);
+        const dataUrl = scratch.toDataURL("image/jpeg", 0.82);
+        bitmap.close();
+        return dataUrl;
+      }
+
+      async function handlePhotoUpload(event) {
+        if (!activeLocation) {
+          return;
+        }
+        const files = Array.from(event.target.files || []);
+        if (!files.length) {
+          return;
+        }
+
+        const data = ensureLocationData(activeLocation.id);
+        try {
+          for (const file of files) {
+            if (!file.type.startsWith("image/")) {
+              continue;
+            }
+            const dataUrl = await compressImage(file);
+            data.photos.push({
+              id: `${activeLocation.id}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`,
+              name: file.name,
+              dataUrl
+            });
+          }
+          saveStorage(STORAGE_KEY, cityData);
+          renderPhotoGrid(data.photos);
+          flashSaved("Photos saved");
+        } catch (error) {
+          console.warn(error);
+          alert("Image storage failed. LocalStorage may be full.");
+        } finally {
+          event.target.value = "";
+        }
+      }
+
+      function updateToolbarState() {
+        addLocationButton.classList.toggle("active", searchSheetOpen);
+        addLocationButton.textContent = "Add New Location";
+        toggleAutorotateButton.textContent = autoRotate ? "Pause Auto Rotate" : "Resume Auto Rotate";
+        statusChip.textContent = searchSheetOpen
+          ? "Search Geoapify for a city, then add it to the globe."
+          : "Drag to orbit. Scroll to zoom. Add cities from the toolbar. Click markers for notes and photos.";
+      }
+
+      function addGeoapifyLocation(result) {
+        const placeKey = result.place_id || `${result.lat}:${result.lon}:${result.city || result.name || result.formatted}`;
+        const locationId = `geoapify-${placeKey}`;
+        const existing = locationMap.get(locationId);
+        const duplicateSignature = makeLocationSignature({
+          name: result.city || result.name || result.formatted || "City",
+          countryCode: result.country_code || "",
+          countryName: result.country || "",
+          lat: Number(result.lat),
+          lon: Number(result.lon)
+        });
+        const duplicateLocation = allLocations.find((location) => makeLocationSignature(location) === duplicateSignature);
+        if (existing || duplicateLocation) {
+          openPanel(existing || duplicateLocation);
+          closeSearchSheet();
+          flashSaved("Location already added");
+          return;
+        }
+
+        const stored = {
+          id: locationId,
+          name: result.city || result.name || result.formatted || "City",
+          flag: flagFromCountryCode((result.country_code || "").slice(0, 2)),
+          lat: Number(result.lat),
+          lon: Number(result.lon),
+          color: colorPool[Math.floor(Math.random() * colorPool.length)],
+          countryCode: result.country_code || "",
+          adminName1: result.state || "",
+          countryName: result.country || ""
+        };
+
+        registerLocation(stored);
+        persistLocationState();
+        openPanel(stored);
+        closeSearchSheet();
+        flashSaved("Location added");
+      }
+
+      function setMarkerPosition(marker, projected, scale) {
+        marker.style.setProperty("--x", `${projected.x.toFixed(2)}px`);
+        marker.style.setProperty("--y", `${projected.y.toFixed(2)}px`);
+        marker.style.setProperty("--scale", scale.toFixed(3));
+        if (projected.visible) {
+          marker.style.removeProperty("--cobe-visible-marker");
+        } else {
+          marker.style.setProperty("--cobe-visible-marker", "0");
+        }
+        marker.style.zIndex = `${Math.max(2, Math.floor((projected.z + 1) * 1000))}`;
+      }
+
+      function updateCityMarkers() {
+        cityMarkers.forEach(({ location, el }) => {
+          const projected = projectPoint(latLonToVector(location.lat, location.lon, 1.01), 0.02);
+          const scale = clamp(0.92 + projected.z * 0.22 + (activeLocation?.id === location.id ? 0.08 : 0), 0.78, 1.24);
+          setMarkerPosition(el, projected, scale);
+        });
+      }
+
+      const globeMarkers = [];
+      function syncGlobeMarkers() {
+        globeMarkers.length = 0;
+        allLocations.forEach((location) => {
+          globeMarkers.push({
+            location: [location.lat, location.lon],
+            size: activeLocation?.id === location.id ? 0.11 : 0.075,
+            color: hexToRgb01(location.color)
+          });
+        });
+      }
+
+      function updateProjectionFrame() {
+        projection.phi = wrapAngle(motion.basePhi + motion.interactionPhi);
+        projection.theta = clamp(0.32 + motion.interactionTheta, -0.72, 0.72);
+        projection.scale = motion.currentScale;
+        projection.cx = width / 2;
+        projection.cy = height / 2;
+        projection.radius = height * 0.4;
+      }
+
+      function updateDomLayers(timeSeconds) {
+        void timeSeconds;
+        updateCityMarkers();
+      }
+
+      function bootGlobe() {
+        syncGlobeMarkers();
+        globeInstance = createGlobe(canvas, {
+          devicePixelRatio: Math.min(window.devicePixelRatio, 2),
+          width: Math.round(width * Math.min(window.devicePixelRatio, 2)),
+          height: Math.round(height * Math.min(window.devicePixelRatio, 2)),
+          phi: projection.phi,
+          theta: projection.theta,
+          dark: 1,
+          diffuse: 3.15,
+          mapSamples: 22000,
+          mapBrightness: 1.22,
+          mapBaseBrightness: 0.08,
+          baseColor: [0.065, 0.08, 0.12],
+          markerColor: [0.82, 0.9, 1],
+          glowColor: [0.68, 0.78, 1],
+          opacity: 1,
+          scale: projection.scale,
+          offset: [0, 0],
+          markers: globeMarkers,
+          onRender: (state) => {
+            const now = performance.now();
+            const dt = Math.min((now - lastRenderTime) / 16.6667, 2);
+            lastRenderTime = now;
+
+            motion.currentScale += (motion.targetScale - motion.currentScale) * 0.12;
+            motion.interactionPhi += (motion.targetInteractionPhi - motion.interactionPhi) * 0.14;
+            motion.interactionTheta += (motion.targetInteractionTheta - motion.interactionTheta) * 0.14;
+
+            if (autoRotate && dragPointerId === null) {
+              motion.basePhi += AUTO_ROTATE_SPEED * dt;
+            }
+
+            updateProjectionFrame();
+            state.phi = projection.phi;
+            state.theta = projection.theta;
+            state.scale = projection.scale;
+            state.width = Math.round(width * Math.min(window.devicePixelRatio, 2));
+            state.height = Math.round(height * Math.min(window.devicePixelRatio, 2));
+            state.markers = globeMarkers;
+
+            updateDomLayers(now / 1000);
+            if (!canvas.classList.contains("ready")) {
+              canvas.classList.add("ready");
+            }
+          }
+        });
+      }
+
+      function pointerDown(event) {
+        dragPointerId = event.pointerId;
+        dragStartX = event.clientX;
+        dragStartY = event.clientY;
+        lastPointerX = event.clientX;
+        lastPointerY = event.clientY;
+        dragMoved = false;
+        canvas.classList.add("dragging");
+        canvas.setPointerCapture(event.pointerId);
+      }
+
+      function pointerMove(event) {
+        if (dragPointerId !== event.pointerId) {
+          return;
+        }
+
+        const deltaX = event.clientX - lastPointerX;
+        const deltaY = event.clientY - lastPointerY;
+        lastPointerX = event.clientX;
+        lastPointerY = event.clientY;
+
+        if (Math.abs(event.clientX - dragStartX) > 3 || Math.abs(event.clientY - dragStartY) > 3) {
+          dragMoved = true;
+        }
+
+        motion.targetInteractionPhi += deltaX * 0.0045;
+        motion.targetInteractionTheta -= deltaY * 0.0038;
+        motion.targetInteractionTheta = clamp(motion.targetInteractionTheta, -0.9, 0.9);
+      }
+
+      function pointerUp(event) {
+        if (dragPointerId !== event.pointerId) {
+          return;
+        }
+        dragPointerId = null;
+        canvas.classList.remove("dragging");
+        if (canvas.hasPointerCapture(event.pointerId)) {
+          canvas.releasePointerCapture(event.pointerId);
+        }
+      }
+
+      function wheelZoom(event) {
+        event.preventDefault();
+        motion.targetScale = clamp(motion.targetScale - event.deltaY * 0.00065, 0.88, 1.48);
+      }
+
+      function handleCanvasClick(event) {
+        void event;
+      }
+
+      addLocationButton.addEventListener("click", () => {
+        if (searchSheetOpen) {
+          closeSearchSheet();
+        } else {
+          openSearchSheet();
+        }
+      });
+
+      importCsvButton.addEventListener("click", () => {
+        csvImportInput.click();
+      });
+
+      exportCsvButton.addEventListener("click", exportLocationsAsCsv);
+
+      resetCameraButton.addEventListener("click", () => {
+        motion.basePhi = 0.24;
+        motion.targetInteractionPhi = 0;
+        motion.interactionPhi = 0;
+        motion.targetInteractionTheta = 0;
+        motion.interactionTheta = 0;
+        motion.targetScale = DEFAULT_GLOBE_SCALE;
+      });
+
+      toggleAutorotateButton.addEventListener("click", () => {
+        autoRotate = !autoRotate;
+        updateToolbarState();
+      });
+
+      searchCloseButton.addEventListener("click", closeSearchSheet);
+      document.getElementById("panel-close").addEventListener("click", closePanel);
+      removeLocationButton.addEventListener("click", removeActiveLocation);
+      csvImportInput.addEventListener("change", handleCsvImport);
+      notesField.addEventListener("input", handleNoteInput);
+      photoUpload.addEventListener("change", handlePhotoUpload);
+      placeQueryInput.addEventListener("input", () => {
+        clearTimeout(placeSearchTimer);
+        const query = placeQueryInput.value;
+        placeSearchTimer = setTimeout(() => searchPlaces(query), 250);
+      });
+      placeQueryInput.addEventListener("keydown", (event) => {
+        if (event.key === "Enter") {
+          event.preventDefault();
+          clearTimeout(placeSearchTimer);
+          searchPlaces(placeQueryInput.value);
+        }
+      });
+
+      document.getElementById("lightbox-close").addEventListener("click", () => {
+        lightbox.classList.remove("open");
+        lightbox.setAttribute("aria-hidden", "true");
+      });
+
+      lightbox.addEventListener("click", (event) => {
+        if (event.target === lightbox) {
+          lightbox.classList.remove("open");
+          lightbox.setAttribute("aria-hidden", "true");
+        }
+      });
+
+      window.addEventListener("keydown", (event) => {
+        if (event.key === "Escape") {
+          if (lightbox.classList.contains("open")) {
+            lightbox.classList.remove("open");
+            lightbox.setAttribute("aria-hidden", "true");
+          } else if (searchSheetOpen) {
+            closeSearchSheet();
+          } else if (panel.classList.contains("open")) {
+            closePanel();
+          }
+        }
+      });
+
+      window.addEventListener("resize", () => {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = Math.round(width * Math.min(window.devicePixelRatio, 2));
+        canvas.height = Math.round(height * Math.min(window.devicePixelRatio, 2));
+        updateProjectionFrame();
+      });
+
+      canvas.addEventListener("pointerdown", pointerDown);
+      canvas.addEventListener("pointermove", pointerMove);
+      canvas.addEventListener("pointerup", pointerUp);
+      canvas.addEventListener("pointercancel", pointerUp);
+      canvas.addEventListener("pointerleave", pointerUp);
+      canvas.addEventListener("wheel", wheelZoom, { passive: false });
+      canvas.addEventListener("click", handleCanvasClick);
+
+      allLocations.forEach(createCityMarker);
+      updateVisitedStats();
+      setSearchMessage(
+        GEOAPIFY_API_KEY
+          ? "Search for a city to add it to the globe."
+          : "Geoapify API key not found. Run the local server that reads your .env file.",
+        !GEOAPIFY_API_KEY
+      );
+      updateToolbarState();
+      bootGlobe();
+    })();
+  </script>
+</body>
+</html>
