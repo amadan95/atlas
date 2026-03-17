@@ -240,35 +240,67 @@
       text-overflow: clip;
     }
 
-    .toolbar,
-    .footer,
-    .status-chip,
-    .stats-card {
+    .city-marker.selected {
+      filter: brightness(1.18) saturate(1.18);
+    }
+
+    .city-marker.selected .marker-label {
+      text-shadow:
+        0 0 12px rgba(255, 255, 255, 0.22),
+        0 1px 2px rgba(0, 0, 0, 0.38);
+    }
+
+    .city-marker.selected .marker-dot {
+      box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.42),
+        0 0 24px var(--marker-color, #7ee7ff);
+    }
+
+    .city-marker.dimmed {
+      filter: saturate(0.28) brightness(0.42);
+    }
+
+    .city-marker.dimmed .marker-label {
+      opacity: 0.58;
+    }
+
+    .city-marker.dimmed .marker-stem {
+      opacity: 0.42;
+    }
+
+    html[data-theme="light"] .city-marker.selected {
+      filter: brightness(0.92) saturate(1.12);
+    }
+
+    html[data-theme="light"] .city-marker.selected .marker-label {
+      text-shadow:
+        0 0 10px rgba(15, 23, 42, 0.08),
+        0 1px 0 rgba(255, 255, 255, 0.72);
+    }
+
+    html[data-theme="light"] .city-marker.dimmed {
+      filter: saturate(0.24) brightness(0.82);
+    }
+
+    .control-hud,
+    .stats-card,
+    .status-toast,
+    .footer {
       position: absolute;
-      display: flex;
-      align-items: center;
-      gap: 10px;
       z-index: 6;
     }
 
-    .toolbar {
+    .control-hud {
       top: 22px;
       left: 22px;
-      flex-wrap: wrap;
-      max-width: min(72vw, 460px);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
 
-    .toolbar button,
-    .panel button,
-    .lightbox button {
-      appearance: none;
-      border: 0;
-      cursor: pointer;
-    }
-
-    .toolbar button,
-    .theme-switch,
-    .status-chip,
+    .control-dock,
+    .menu-popover,
+    .status-toast,
     .stats-card,
     .footer,
     .panel,
@@ -281,102 +313,251 @@
       backdrop-filter: blur(18px) saturate(140%);
     }
 
-    .toolbar button,
-    .theme-switch-button,
-    .status-chip {
-      min-height: 42px;
-      padding: 0 14px;
+    .dock-button,
+    .menu-button,
+    .panel button,
+    .lightbox button {
+      appearance: none;
+      border: 0;
+      cursor: pointer;
+    }
+
+    .control-dock {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px;
       border-radius: 999px;
+    }
+
+    .dock-button,
+    .status-toast {
       color: var(--text);
-      font-size: 11px;
-      font-weight: 600;
-      letter-spacing: 0.16em;
-      text-transform: uppercase;
       transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease;
     }
 
-    .toolbar button:hover,
-    .toolbar button.active,
-    .theme-switch-button:hover,
-    .theme-switch-button.active {
+    .dock-button {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid transparent;
+      padding: 0;
+    }
+
+    .dock-button:hover,
+    .dock-button.active,
+    .menu-button:hover,
+    .menu-button:focus-visible {
       transform: translateY(-1px);
       border-color: rgba(126, 231, 255, 0.45);
       background:
         linear-gradient(140deg, rgba(126, 231, 255, 0.26), rgba(255, 255, 255, 0.06));
     }
 
-    .theme-switch {
+    .dock-button:focus-visible,
+    .menu-button:focus-visible,
+    .search-close:focus-visible,
+    .panel-close:focus-visible {
+      outline: none;
+      box-shadow:
+        0 0 0 1px rgba(126, 231, 255, 0.5),
+        0 0 0 4px rgba(126, 231, 255, 0.14);
+    }
+
+    .dock-button svg,
+    .menu-button svg {
+      width: 18px;
+      height: 18px;
+      display: block;
+      stroke: currentColor;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 1.7;
+    }
+
+    .dock-button > span {
       display: inline-flex;
       align-items: center;
-      gap: 4px;
-      padding: 4px;
-      border-radius: 999px;
+      justify-content: center;
     }
 
-    .theme-switch-button {
-      min-width: 76px;
-      min-height: 34px;
-      padding: 0 12px;
+    .dock-button::after {
+      content: attr(data-tooltip);
+      position: absolute;
+      top: calc(100% + 10px);
+      left: 50%;
+      transform: translate(-50%, -4px);
+      min-width: max-content;
+      padding: 7px 10px;
       border-radius: 999px;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      background: rgba(5, 9, 18, 0.9);
+      color: rgba(243, 247, 255, 0.92);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      white-space: nowrap;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    .dock-button:hover::after,
+    .dock-button:focus-visible::after {
+      opacity: 1;
+      transform: translate(-50%, 0);
+    }
+
+    .menu-popover {
+      position: absolute;
+      top: calc(100% + 8px);
+      left: 0;
+      width: min(290px, calc(100vw - 44px));
+      padding: 12px;
+      border-radius: 22px;
+      display: grid;
+      gap: 12px;
+      opacity: 0;
+      transform: translateY(-8px) scale(0.98);
+      pointer-events: none;
+      transition: opacity 0.2s ease, transform 0.2s ease;
+    }
+
+    .menu-popover.open {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+
+    .menu-section {
+      display: grid;
+      gap: 6px;
+    }
+
+    .menu-section + .menu-section {
+      padding-top: 10px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .menu-section-title {
+      padding: 0 8px 4px;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(226, 233, 255, 0.54);
+    }
+
+    .menu-button {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      min-height: 42px;
+      padding: 0 12px;
+      border-radius: 14px;
       background: transparent;
       border: 1px solid transparent;
-      box-shadow: none;
-      font-size: 10px;
-      letter-spacing: 0.18em;
+      color: var(--text);
+      text-align: left;
+      font-size: 12px;
+      font-weight: 600;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
     }
 
-    .status-chip {
-      top: 22px;
-      right: 22px;
-      color: rgba(243, 247, 255, 0.8);
+    .menu-button span {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .status-toast {
+      left: 22px;
+      bottom: 22px;
+      max-width: min(340px, calc(100vw - 44px));
+      padding: 10px 14px;
+      border-radius: 999px;
+      color: rgba(243, 247, 255, 0.88);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
       pointer-events: none;
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 0.22s ease, transform 0.22s ease;
+    }
+
+    .status-toast.visible {
+      opacity: 1;
+      transform: translateY(0);
     }
 
     .stats-card {
-      top: 74px;
+      top: 22px;
       right: 22px;
-      flex-direction: column;
-      align-items: stretch;
-      gap: 8px;
-      min-width: 184px;
-      padding: 14px;
-      border-radius: 22px;
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+      padding: 10px 14px;
+      border-radius: 999px;
+      white-space: nowrap;
     }
 
     .stats-title {
-      font-size: 10px;
-      letter-spacing: 0.18em;
+      font-size: 9px;
+      font-weight: 600;
+      letter-spacing: 0.22em;
       text-transform: uppercase;
       color: rgba(226, 233, 255, 0.58);
+      padding-right: 12px;
+      border-right: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     .stats-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 8px;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
     }
 
     .stat-block {
+      display: inline-flex;
+      align-items: baseline;
+      gap: 6px;
       min-width: 0;
-      padding: 10px 12px;
-      border-radius: 16px;
-      border: 1px solid rgba(255, 255, 255, 0.08);
-      background: rgba(255, 255, 255, 0.04);
+      padding: 0;
+      border: 0;
+      background: none;
+    }
+
+    .stats-divider {
+      width: 1px;
+      height: 18px;
+      background: rgba(255, 255, 255, 0.08);
     }
 
     .stat-value {
-      display: block;
-      font-size: 24px;
+      display: inline-block;
+      font-size: 20px;
       line-height: 1;
+      font-variant-numeric: tabular-nums;
       letter-spacing: -0.04em;
       color: rgba(255, 255, 255, 0.96);
-      margin-bottom: 4px;
     }
 
     .stat-label {
-      display: block;
-      font-size: 10px;
-      letter-spacing: 0.14em;
+      display: inline-block;
+      font-size: 9px;
+      letter-spacing: 0.18em;
       text-transform: uppercase;
       color: rgba(226, 233, 255, 0.58);
     }
@@ -403,9 +584,9 @@
 
     .search-sheet {
       position: absolute;
-      top: 74px;
+      top: 86px;
       left: 22px;
-      width: min(420px, calc(100vw - 44px));
+      width: min(390px, calc(100vw - 44px));
       padding: 18px;
       border-radius: 24px;
       border: 1px solid var(--panel-border);
@@ -464,6 +645,32 @@
       gap: 10px;
     }
 
+    .search-divider {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-top: 2px;
+      color: rgba(226, 233, 255, 0.48);
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    .search-divider::before,
+    .search-divider::after {
+      content: "";
+      flex: 1;
+      height: 1px;
+      background: rgba(255, 255, 255, 0.08);
+    }
+
+    .search-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+      gap: 10px;
+    }
+
     .search-field {
       display: grid;
       gap: 6px;
@@ -490,6 +697,30 @@
 
     .search-field input::placeholder {
       color: rgba(226, 233, 255, 0.32);
+    }
+
+    .search-submit {
+      min-height: 42px;
+      border-radius: 16px;
+      padding: 0 14px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      background:
+        linear-gradient(140deg, rgba(126, 231, 255, 0.18), rgba(255, 255, 255, 0.05));
+      color: var(--text);
+      font-size: 11px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+    }
+
+    .search-submit:hover,
+    .search-submit:focus-visible {
+      transform: translateY(-1px);
+      border-color: rgba(126, 231, 255, 0.34);
+      background:
+        linear-gradient(140deg, rgba(126, 231, 255, 0.28), rgba(255, 255, 255, 0.08));
+      outline: none;
     }
 
     .search-results {
@@ -891,9 +1122,9 @@
       text-shadow: 0 1px 0 rgba(255, 255, 255, 0.72);
     }
 
-    html[data-theme="light"] .toolbar button,
-    html[data-theme="light"] .theme-switch,
-    html[data-theme="light"] .status-chip,
+    html[data-theme="light"] .control-dock,
+    html[data-theme="light"] .menu-popover,
+    html[data-theme="light"] .status-toast,
     html[data-theme="light"] .stats-card,
     html[data-theme="light"] .panel,
     html[data-theme="light"] .panel-upload,
@@ -905,16 +1136,35 @@
       box-shadow: var(--shadow);
     }
 
-    html[data-theme="light"] .toolbar button:hover,
-    html[data-theme="light"] .toolbar button.active,
-    html[data-theme="light"] .theme-switch-button:hover,
-    html[data-theme="light"] .theme-switch-button.active {
+    html[data-theme="light"] .dock-button,
+    html[data-theme="light"] .menu-button,
+    html[data-theme="light"] .search-close,
+    html[data-theme="light"] .panel-close {
+      color: rgba(15, 23, 42, 0.92);
+    }
+
+    html[data-theme="light"] .dock-button::after {
+      border-color: rgba(15, 23, 42, 0.1);
+      background: rgba(255, 255, 255, 0.96);
+      color: rgba(15, 23, 42, 0.78);
+      box-shadow: 0 8px 28px rgba(15, 23, 42, 0.08);
+    }
+
+    html[data-theme="light"] .dock-button:hover,
+    html[data-theme="light"] .dock-button.active,
+    html[data-theme="light"] .menu-button:hover,
+    html[data-theme="light"] .menu-button:focus-visible {
       border-color: rgba(15, 23, 42, 0.22);
       background:
         linear-gradient(140deg, rgba(15, 23, 42, 0.08), rgba(255, 255, 255, 0.9));
     }
 
-    html[data-theme="light"] .status-chip {
+    html[data-theme="light"] .menu-section + .menu-section {
+      border-top-color: rgba(15, 23, 42, 0.08);
+    }
+
+    html[data-theme="light"] .menu-section-title,
+    html[data-theme="light"] .status-toast {
       color: rgba(15, 23, 42, 0.72);
     }
 
@@ -927,9 +1177,12 @@
       color: rgba(15, 23, 42, 0.54);
     }
 
-    html[data-theme="light"] .stat-block {
-      border-color: rgba(15, 23, 42, 0.08);
-      background: rgba(15, 23, 42, 0.03);
+    html[data-theme="light"] .stats-title {
+      border-right-color: rgba(15, 23, 42, 0.1);
+    }
+
+    html[data-theme="light"] .stats-divider {
+      background: rgba(15, 23, 42, 0.08);
     }
 
     html[data-theme="light"] .stat-value,
@@ -974,6 +1227,29 @@
     html[data-theme="light"] .search-field input::placeholder,
     html[data-theme="light"] textarea::placeholder {
       color: rgba(15, 23, 42, 0.34);
+    }
+
+    html[data-theme="light"] .search-divider {
+      color: rgba(15, 23, 42, 0.5);
+    }
+
+    html[data-theme="light"] .search-divider::before,
+    html[data-theme="light"] .search-divider::after {
+      background: rgba(15, 23, 42, 0.08);
+    }
+
+    html[data-theme="light"] .search-submit {
+      border-color: rgba(15, 23, 42, 0.14);
+      background:
+        linear-gradient(140deg, rgba(15, 23, 42, 0.06), rgba(255, 255, 255, 0.88));
+      color: rgba(15, 23, 42, 0.92);
+    }
+
+    html[data-theme="light"] .search-submit:hover,
+    html[data-theme="light"] .search-submit:focus-visible {
+      border-color: rgba(15, 23, 42, 0.22);
+      background:
+        linear-gradient(140deg, rgba(15, 23, 42, 0.1), rgba(255, 255, 255, 0.94));
     }
 
     html[data-theme="light"] .search-result,
@@ -1052,27 +1328,57 @@
     }
 
     @media (max-width: 720px) {
-      .toolbar,
-      .status-chip,
+      .control-hud,
       .stats-card {
         top: 14px;
       }
 
-      .toolbar {
+      .control-hud {
         left: 14px;
-        right: 14px;
-        max-width: none;
       }
 
-      .status-chip {
-        display: none;
+      .control-dock {
+        gap: 6px;
+        padding: 7px;
       }
 
       .stats-card {
         right: 14px;
         left: auto;
-        min-width: 156px;
-        padding: 12px;
+        gap: 10px;
+        padding: 9px 12px;
+      }
+
+      .stats-title {
+        padding-right: 10px;
+      }
+
+      .stats-grid {
+        gap: 10px;
+      }
+
+      .stat-block {
+        gap: 5px;
+      }
+
+      .stat-value {
+        font-size: 18px;
+      }
+
+      .menu-popover {
+        width: min(260px, calc(100vw - 28px));
+      }
+
+      .status-toast {
+        left: 50%;
+        right: auto;
+        bottom: 14px;
+        max-width: calc(100vw - 28px);
+        transform: translate(-50%, 12px);
+      }
+
+      .status-toast.visible {
+        transform: translate(-50%, 0);
       }
 
       .footer {
@@ -1083,10 +1389,14 @@
       }
 
       .search-sheet {
-        top: 116px;
+        top: 78px;
         left: 14px;
         right: 14px;
         width: auto;
+      }
+
+      .search-grid {
+        grid-template-columns: 1fr;
       }
 
       .panel {
@@ -1109,15 +1419,64 @@
     <div id="scene"></div>
     <div id="overlay"></div>
 
-    <div class="toolbar">
-      <button id="add-location" type="button">Add New Location</button>
-      <button id="import-csv" type="button">Import CSV</button>
-      <button id="export-csv" type="button">Export CSV</button>
-      <button id="reset-camera" type="button">Reset Camera</button>
-      <button id="toggle-autorotate" type="button">Pause Auto Rotate</button>
-      <div class="theme-switch" role="group" aria-label="Color theme">
-        <button id="theme-dark" class="theme-switch-button" type="button">Dark</button>
-        <button id="theme-light" class="theme-switch-button" type="button">Light</button>
+    <div class="control-hud">
+      <div class="control-dock" aria-label="Globe controls">
+        <button id="add-location" class="dock-button" type="button" aria-label="Add city" data-tooltip="Add city">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 5v14"></path>
+            <path d="M5 12h14"></path>
+          </svg>
+        </button>
+        <button id="theme-toggle" class="dock-button" type="button" aria-label="Toggle theme" data-tooltip="Toggle theme">
+          <span id="theme-toggle-icon" aria-hidden="true"></span>
+        </button>
+        <button id="menu-trigger" class="dock-button" type="button" aria-label="Open options" data-tooltip="Options" aria-haspopup="menu" aria-expanded="false">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M4 7h16"></path>
+            <path d="M7 12h10"></path>
+            <path d="M10 17h4"></path>
+          </svg>
+        </button>
+      </div>
+
+      <div id="control-menu" class="menu-popover" role="menu" hidden aria-hidden="true">
+        <div class="menu-section">
+          <div class="menu-section-title">Data</div>
+          <button id="import-csv" class="menu-button" type="button" role="menuitem">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 4v11"></path>
+              <path d="M8 11l4 4 4-4"></path>
+              <path d="M5 20h14"></path>
+            </svg>
+            <span>Import CSV</span>
+          </button>
+          <button id="export-csv" class="menu-button" type="button" role="menuitem">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 20V9"></path>
+              <path d="M8 13l4-4 4 4"></path>
+              <path d="M5 4h14"></path>
+            </svg>
+            <span>Export CSV</span>
+          </button>
+        </div>
+
+        <div class="menu-section">
+          <div class="menu-section-title">View</div>
+          <button id="toggle-autorotate" class="menu-button" type="button" role="menuitem">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20 12a8 8 0 1 1-2.34-5.66"></path>
+              <path d="M20 4v6h-6"></path>
+            </svg>
+            <span>Pause Auto Rotate</span>
+          </button>
+          <button id="reset-camera" class="menu-button" type="button" role="menuitem">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M20 12a8 8 0 1 1-2.34-5.66"></path>
+              <path d="M20 4v6h-6"></path>
+            </svg>
+            <span>Reset Camera</span>
+          </button>
+        </div>
       </div>
     </div>
     <input id="csv-import-input" type="file" accept=".csv,text/csv" hidden />
@@ -1136,6 +1495,27 @@
           <label for="place-query">City Search</label>
           <input id="place-query" type="text" autocomplete="off" placeholder="Search for a city" />
         </div>
+
+        <div class="search-divider">Manual Placement</div>
+
+        <div class="search-field">
+          <label for="manual-name">City Name</label>
+          <input id="manual-name" type="text" autocomplete="off" placeholder="Enter a city name" />
+        </div>
+
+        <div class="search-grid">
+          <div class="search-field">
+            <label for="manual-lat">Latitude</label>
+            <input id="manual-lat" type="number" inputmode="decimal" step="0.0001" min="-90" max="90" placeholder="e.g. 40.7128" />
+          </div>
+
+          <div class="search-field">
+            <label for="manual-lon">Longitude</label>
+            <input id="manual-lon" type="number" inputmode="decimal" step="0.0001" min="-180" max="180" placeholder="e.g. -74.0060" />
+          </div>
+        </div>
+
+        <button id="manual-add" class="search-submit" type="button">Add Manual City</button>
       </div>
 
       <div id="search-results" class="search-results empty">
@@ -1143,7 +1523,7 @@
       </div>
     </section>
 
-    <div id="status" class="status-chip">Drag to orbit. Scroll to zoom. Click markers for notes and photos.</div>
+    <div id="status" class="status-toast" aria-live="polite" aria-atomic="true"></div>
     <div class="stats-card" aria-live="polite">
       <div class="stats-title">Visited</div>
       <div class="stats-grid">
@@ -1151,6 +1531,7 @@
           <span id="countries-count" class="stat-value">0</span>
           <span class="stat-label">Countries</span>
         </div>
+        <span class="stats-divider" aria-hidden="true"></span>
         <div class="stat-block">
           <span id="cities-count" class="stat-value">0</span>
           <span class="stat-label">Cities</span>
@@ -1247,8 +1628,11 @@
       const csvImportInput = document.getElementById("csv-import-input");
       const resetCameraButton = document.getElementById("reset-camera");
       const toggleAutorotateButton = document.getElementById("toggle-autorotate");
-      const themeDarkButton = document.getElementById("theme-dark");
-      const themeLightButton = document.getElementById("theme-light");
+      const themeToggleButton = document.getElementById("theme-toggle");
+      const themeToggleIcon = document.getElementById("theme-toggle-icon");
+      const menuTriggerButton = document.getElementById("menu-trigger");
+      const controlMenu = document.getElementById("control-menu");
+      const controlHud = document.querySelector(".control-hud");
       const statusChip = document.getElementById("status");
       const countriesCount = document.getElementById("countries-count");
       const citiesCount = document.getElementById("cities-count");
@@ -1258,6 +1642,10 @@
       const searchSheet = document.getElementById("search-sheet");
       const searchCloseButton = document.getElementById("search-close");
       const placeQueryInput = document.getElementById("place-query");
+      const manualNameInput = document.getElementById("manual-name");
+      const manualLatInput = document.getElementById("manual-lat");
+      const manualLonInput = document.getElementById("manual-lon");
+      const manualAddButton = document.getElementById("manual-add");
       const searchResults = document.getElementById("search-results");
 
       let createGlobe;
@@ -1274,17 +1662,17 @@
       const THEME_GLOBE = {
         dark: {
           dark: 1,
-          mapBrightness: 1.22,
-          mapBaseBrightness: 0.08,
-          baseColor: [0.065, 0.08, 0.12],
+          mapBrightness: 1.38,
+          mapBaseBrightness: 0.05,
+          baseColor: [0.055, 0.072, 0.11],
           markerColor: [0.82, 0.9, 1],
           glowColor: [0.68, 0.78, 1]
         },
         light: {
           dark: 0,
-          mapBrightness: 1.28,
-          mapBaseBrightness: 0.18,
-          baseColor: [0.965, 0.972, 0.982],
+          mapBrightness: 1.48,
+          mapBaseBrightness: 0.12,
+          baseColor: [0.955, 0.965, 0.978],
           markerColor: [0.18, 0.22, 0.32],
           glowColor: [0.8, 0.84, 0.92]
         }
@@ -1293,7 +1681,7 @@
       const storedLocations = loadStorage(CUSTOM_LOCATION_KEY, []);
       const filteredStoredLocations = storedLocations.filter((location) => {
         const id = String(location.id || "");
-        return id.startsWith("geoapify-") || id.startsWith("geonames-");
+        return id.startsWith("geoapify-") || id.startsWith("geonames-") || id.startsWith("manual-");
       });
       const needsColorRestore = filteredStoredLocations.some((location) => !location.color || location.color.toLowerCase() === "#111111");
       const customLocations = filteredStoredLocations.map((location, index) => ({
@@ -1307,9 +1695,11 @@
       const allLocations = [...customLocations];
       const locationMap = new Map(allLocations.map((location) => [location.id, location]));
       const cityMarkers = new Map();
+      const globeMarkers = [];
 
       let activeLocation = null;
       let searchSheetOpen = false;
+      let menuOpen = false;
       let autoRotate = true;
       let currentTheme = "dark";
       let hasManualThemePreference = false;
@@ -1398,9 +1788,34 @@
       function applyTheme(theme, persist = true) {
         currentTheme = theme === "light" ? "light" : "dark";
         document.documentElement.dataset.theme = currentTheme;
+        syncGlobeMarkers();
         if (persist) {
           saveThemePreference(currentTheme);
         }
+      }
+
+      function iconMarkup(name) {
+        if (name === "sun") {
+          return `
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <circle cx="12" cy="12" r="4.2"></circle>
+              <path d="M12 2.5v2.5"></path>
+              <path d="M12 19v2.5"></path>
+              <path d="M4.9 4.9l1.8 1.8"></path>
+              <path d="M17.3 17.3l1.8 1.8"></path>
+              <path d="M2.5 12H5"></path>
+              <path d="M19 12h2.5"></path>
+              <path d="M4.9 19.1l1.8-1.8"></path>
+              <path d="M17.3 6.7l1.8-1.8"></path>
+            </svg>
+          `;
+        }
+
+        return `
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5a8.5 8.5 0 1 0 10.7 10.7Z"></path>
+          </svg>
+        `;
       }
 
       if (storedLocations.length !== customLocations.length || needsColorRestore) {
@@ -1427,10 +1842,54 @@
 
       function flashStatus(message, duration = 1800) {
         statusChip.textContent = message;
+        statusChip.classList.add("visible");
         clearTimeout(statusTimer);
         statusTimer = setTimeout(() => {
-          updateToolbarState();
+          statusChip.classList.remove("visible");
         }, duration);
+      }
+
+      function closeControlMenu(options = {}) {
+        const { restoreFocus = false } = options;
+        if (!menuOpen) {
+          return;
+        }
+        menuOpen = false;
+        controlMenu.classList.remove("open");
+        controlMenu.setAttribute("aria-hidden", "true");
+        controlMenu.hidden = true;
+        menuTriggerButton.setAttribute("aria-expanded", "false");
+        updateToolbarState();
+        if (restoreFocus) {
+          menuTriggerButton.focus();
+        }
+      }
+
+      function openControlMenu() {
+        if (menuOpen) {
+          return;
+        }
+        menuOpen = true;
+        controlMenu.hidden = false;
+        controlMenu.classList.add("open");
+        controlMenu.setAttribute("aria-hidden", "false");
+        menuTriggerButton.setAttribute("aria-expanded", "true");
+        updateToolbarState();
+        const firstMenuButton = controlMenu.querySelector(".menu-button");
+        if (firstMenuButton) {
+          firstMenuButton.focus();
+        }
+      }
+
+      function toggleControlMenu() {
+        if (menuOpen) {
+          closeControlMenu({ restoreFocus: true });
+          return;
+        }
+        if (searchSheetOpen) {
+          closeSearchSheet();
+        }
+        openControlMenu();
       }
 
       function slugify(input) {
@@ -1641,6 +2100,10 @@
         return `${normalizeText(location.name).toLowerCase()}|${getLocationCountryKey(location)}`;
       }
 
+      function mixRgb(left, right, amount) {
+        return left.map((value, index) => Number((value * (1 - amount) + right[index] * amount).toFixed(4)));
+      }
+
       function makeLocationSignature(location) {
         return [
           getLocationCityKey(location),
@@ -1845,6 +2308,7 @@
       }
 
       function openSearchSheet() {
+        closeControlMenu();
         searchSheetOpen = true;
         searchSheet.hidden = false;
         searchSheet.classList.add("open");
@@ -1859,6 +2323,12 @@
         searchSheet.setAttribute("aria-hidden", "true");
         searchSheet.hidden = true;
         updateToolbarState();
+      }
+
+      function clearManualFields() {
+        manualNameInput.value = "";
+        manualLatInput.value = "";
+        manualLonInput.value = "";
       }
 
       function renderPlaceResults(results) {
@@ -2153,15 +2623,14 @@
 
       function updateToolbarState() {
         addLocationButton.classList.toggle("active", searchSheetOpen);
-        addLocationButton.textContent = "Add New Location";
-        toggleAutorotateButton.textContent = autoRotate ? "Pause Auto Rotate" : "Resume Auto Rotate";
-        themeDarkButton.classList.toggle("active", currentTheme === "dark");
-        themeLightButton.classList.toggle("active", currentTheme === "light");
-        themeDarkButton.setAttribute("aria-pressed", String(currentTheme === "dark"));
-        themeLightButton.setAttribute("aria-pressed", String(currentTheme === "light"));
-        statusChip.textContent = searchSheetOpen
-          ? "Search Geoapify for a city, then add it to the globe."
-          : "Drag to orbit. Scroll to zoom. Add cities from the toolbar. Click markers for notes and photos.";
+        menuTriggerButton.classList.toggle("active", menuOpen);
+        toggleAutorotateButton.querySelector("span").textContent = autoRotate ? "Pause Auto Rotate" : "Resume Auto Rotate";
+        toggleAutorotateButton.setAttribute("aria-label", autoRotate ? "Pause auto rotate" : "Resume auto rotate");
+
+        const nextTheme = currentTheme === "dark" ? "light" : "dark";
+        themeToggleIcon.innerHTML = iconMarkup(nextTheme === "light" ? "sun" : "moon");
+        themeToggleButton.setAttribute("aria-label", `Switch to ${nextTheme} mode`);
+        themeToggleButton.setAttribute("data-tooltip", nextTheme === "light" ? "Light mode" : "Dark mode");
       }
 
       function addGeoapifyLocation(result) {
@@ -2202,6 +2671,55 @@
         flashSaved("Location added");
       }
 
+      function addManualLocation() {
+        const name = normalizeText(manualNameInput.value);
+        const lat = normalizeCoordinate(manualLatInput.value);
+        const lon = normalizeCoordinate(manualLonInput.value);
+
+        if (!name) {
+          flashStatus("Enter a city name", 1400);
+          manualNameInput.focus();
+          return;
+        }
+        if (lat === null || lat < -90 || lat > 90) {
+          flashStatus("Latitude must be between -90 and 90", 1600);
+          manualLatInput.focus();
+          return;
+        }
+        if (lon === null || lon < -180 || lon > 180) {
+          flashStatus("Longitude must be between -180 and 180", 1700);
+          manualLonInput.focus();
+          return;
+        }
+
+        const stored = {
+          id: `manual-${slugify(name)}-${Math.round((lat + 90) * 1000)}-${Math.round((lon + 180) * 1000)}`,
+          name,
+          flag: "📍",
+          lat,
+          lon,
+          color: colorPool[Math.floor(Math.random() * colorPool.length)],
+          countryCode: "",
+          adminName1: "",
+          countryName: ""
+        };
+        const duplicateSignature = makeLocationSignature(stored);
+        const duplicateLocation = allLocations.find((location) => makeLocationSignature(location) === duplicateSignature);
+        if (duplicateLocation) {
+          openPanel(duplicateLocation);
+          closeSearchSheet();
+          flashSaved("Location already added");
+          return;
+        }
+
+        registerLocation(stored);
+        persistLocationState();
+        openPanel(stored);
+        clearManualFields();
+        closeSearchSheet();
+        flashSaved("Manual city added");
+      }
+
       function setMarkerPosition(marker, projected, scale) {
         marker.style.setProperty("--x", `${projected.x.toFixed(2)}px`);
         marker.style.setProperty("--y", `${projected.y.toFixed(2)}px`);
@@ -2215,21 +2733,37 @@
       }
 
       function updateCityMarkers() {
+        const hasSelection = Boolean(activeLocation);
         cityMarkers.forEach(({ location, el }) => {
           const projected = projectPoint(latLonToVector(location.lat, location.lon, 1.01), 0.02);
-          const scale = clamp(0.92 + projected.z * 0.22 + (activeLocation?.id === location.id ? 0.08 : 0), 0.78, 1.24);
+          const isSelected = activeLocation?.id === location.id;
+          el.classList.toggle("selected", isSelected);
+          el.classList.toggle("dimmed", hasSelection && !isSelected);
+          const scale = clamp(
+            0.92 + projected.z * 0.22 + (isSelected ? 0.16 : 0) - (hasSelection && !isSelected ? 0.08 : 0),
+            0.72,
+            1.32
+          );
           setMarkerPosition(el, projected, scale);
         });
       }
 
-      const globeMarkers = [];
       function syncGlobeMarkers() {
         globeMarkers.length = 0;
+        const themeBaseColor = THEME_GLOBE[currentTheme].baseColor;
         allLocations.forEach((location) => {
+          const isSelected = activeLocation?.id === location.id;
+          const hasSelection = Boolean(activeLocation);
+          const baseMarkerColor = hexToRgb01(location.color);
+          const markerColor = hasSelection && !isSelected
+            ? mixRgb(baseMarkerColor, themeBaseColor, 0.82)
+            : isSelected
+              ? mixRgb(baseMarkerColor, [1, 1, 1], currentTheme === "dark" ? 0.16 : 0.04)
+              : baseMarkerColor;
           globeMarkers.push({
             location: [location.lat, location.lon],
-            size: activeLocation?.id === location.id ? 0.11 : 0.075,
-            color: hexToRgb01(location.color)
+            size: isSelected ? 0.13 : hasSelection ? 0.052 : 0.075,
+            color: markerColor
           });
         });
       }
@@ -2278,7 +2812,7 @@
             motion.interactionPhi += (motion.targetInteractionPhi - motion.interactionPhi) * 0.14;
             motion.interactionTheta += (motion.targetInteractionTheta - motion.interactionTheta) * 0.14;
 
-            if (autoRotate && dragPointerId === null) {
+            if (autoRotate && dragPointerId === null && !activeLocation) {
               motion.basePhi += AUTO_ROTATE_SPEED * dt;
             }
 
@@ -2364,47 +2898,47 @@
       });
 
       importCsvButton.addEventListener("click", () => {
+        closeControlMenu();
         csvImportInput.click();
       });
 
-      exportCsvButton.addEventListener("click", exportLocationsAsCsv);
+      exportCsvButton.addEventListener("click", () => {
+        closeControlMenu();
+        exportLocationsAsCsv();
+      });
 
       resetCameraButton.addEventListener("click", () => {
+        closeControlMenu();
         motion.basePhi = 0.24;
         motion.targetInteractionPhi = 0;
         motion.interactionPhi = 0;
         motion.targetInteractionTheta = 0;
         motion.interactionTheta = 0;
         motion.targetScale = DEFAULT_GLOBE_SCALE;
+        flashStatus("Camera reset", 1200);
       });
 
       toggleAutorotateButton.addEventListener("click", () => {
+        closeControlMenu();
         autoRotate = !autoRotate;
         updateToolbarState();
+        flashStatus(autoRotate ? "Auto rotate on" : "Auto rotate paused", 1200);
       });
 
-      themeDarkButton.addEventListener("click", () => {
-        if (currentTheme !== "dark") {
-          applyTheme("dark");
-          updateToolbarState();
-          flashStatus("Dark mode", 1200);
-        }
+      themeToggleButton.addEventListener("click", () => {
+        applyTheme(currentTheme === "dark" ? "light" : "dark");
+        updateToolbarState();
+        flashStatus(currentTheme === "light" ? "Light mode" : "Dark mode", 1200);
       });
 
-      themeLightButton.addEventListener("click", () => {
-        if (currentTheme !== "light") {
-          applyTheme("light");
-          updateToolbarState();
-          flashStatus("Light mode", 1200);
-        }
-      });
-
+      menuTriggerButton.addEventListener("click", toggleControlMenu);
       searchCloseButton.addEventListener("click", closeSearchSheet);
       document.getElementById("panel-close").addEventListener("click", closePanel);
       removeLocationButton.addEventListener("click", removeActiveLocation);
       csvImportInput.addEventListener("change", handleCsvImport);
       notesField.addEventListener("input", handleNoteInput);
       photoUpload.addEventListener("change", handlePhotoUpload);
+      manualAddButton.addEventListener("click", addManualLocation);
       placeQueryInput.addEventListener("input", () => {
         clearTimeout(placeSearchTimer);
         const query = placeQueryInput.value;
@@ -2417,6 +2951,14 @@
           searchPlaces(placeQueryInput.value);
         }
       });
+      [manualNameInput, manualLatInput, manualLonInput].forEach((input) => {
+        input.addEventListener("keydown", (event) => {
+          if (event.key === "Enter") {
+            event.preventDefault();
+            addManualLocation();
+          }
+        });
+      });
 
       document.getElementById("lightbox-close").addEventListener("click", () => {
         lightbox.classList.remove("open");
@@ -2427,6 +2969,15 @@
         if (event.target === lightbox) {
           lightbox.classList.remove("open");
           lightbox.setAttribute("aria-hidden", "true");
+        }
+      });
+
+      document.addEventListener("pointerdown", (event) => {
+        if (!menuOpen) {
+          return;
+        }
+        if (!controlHud.contains(event.target)) {
+          closeControlMenu();
         }
       });
 
@@ -2446,6 +2997,8 @@
           if (lightbox.classList.contains("open")) {
             lightbox.classList.remove("open");
             lightbox.setAttribute("aria-hidden", "true");
+          } else if (menuOpen) {
+            closeControlMenu({ restoreFocus: true });
           } else if (searchSheetOpen) {
             closeSearchSheet();
           } else if (panel.classList.contains("open")) {
@@ -2495,6 +3048,7 @@
       );
       updateToolbarState();
       bootGlobe();
+      flashStatus(allLocations.length ? "Use the dock for globe controls" : "Use + to add your first city", 2600);
     })();
   </script>
 </body>
