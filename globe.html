@@ -1845,7 +1845,7 @@
 
   </div>
 
-  <script src="/config.js"></script>
+  <script src="/api/config"></script>
   <script>
     (async () => {
       async function importCobe() {
@@ -2684,7 +2684,7 @@
 
       async function searchPlaces(query) {
         if (!GEOAPIFY_API_KEY) {
-          setSearchMessage("City search is unavailable. Start the local server that reads your .env file.", true);
+          setSearchMessage("City search is unavailable. Set GEOAPIFY_API_KEY in the environment.", true);
           return;
         }
 
@@ -3411,7 +3411,7 @@
       setSearchMessage(
         GEOAPIFY_API_KEY
           ? "Search for a city to add it to the globe."
-          : "City search is unavailable. Run the local server that reads your .env file.",
+          : "City search is unavailable. Set GEOAPIFY_API_KEY in the environment.",
         !GEOAPIFY_API_KEY
       );
       updateToolbarState();

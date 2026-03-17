@@ -31,7 +31,7 @@ class GlobeHandler(http.server.SimpleHTTPRequestHandler):
         super().__init__(*args, directory=str(ROOT), **kwargs)
 
     def do_GET(self):
-        if self.path.split("?", 1)[0] == "/config.js":
+        if self.path.split("?", 1)[0] in {"/config.js", "/api/config", "/api/config.js"}:
             api_key = ENV.get("GEOAPIFY_API_KEY", "")
             payload = f'window.__APP_CONFIG__ = {{ GEOAPIFY_API_KEY: "{api_key}" }};\n'
             encoded = payload.encode("utf-8")
