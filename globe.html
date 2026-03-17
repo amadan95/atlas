@@ -283,7 +283,8 @@
     }
 
     .control-hud,
-    .stats-card,
+    .stats-hud,
+    .stats-popover,
     .status-toast,
     .footer {
       position: absolute;
@@ -314,6 +315,7 @@
     }
 
     .dock-button,
+    .stats-card,
     .menu-button,
     .panel button,
     .lightbox button {
@@ -501,9 +503,16 @@
       transform: translateY(0);
     }
 
-    .stats-card {
+    .stats-hud {
       top: 22px;
       right: 22px;
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      gap: 8px;
+    }
+
+    .stats-card {
       display: inline-flex;
       align-items: center;
       gap: 14px;
@@ -511,6 +520,42 @@
       padding: 10px 14px;
       border-radius: 999px;
       white-space: nowrap;
+      color: var(--text);
+      cursor: pointer;
+      border: 1px solid var(--panel-border);
+      background:
+        linear-gradient(140deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04));
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px) saturate(140%);
+      transition: transform 0.25s ease, border-color 0.25s ease, background 0.25s ease;
+    }
+
+    .stats-card:hover,
+    .stats-card.active,
+    .stats-card:focus-visible {
+      transform: translateY(-1px);
+      border-color: rgba(126, 231, 255, 0.36);
+      background:
+        linear-gradient(140deg, rgba(126, 231, 255, 0.16), rgba(255, 255, 255, 0.06));
+      outline: none;
+    }
+
+    .stats-chevron {
+      width: 14px;
+      height: 14px;
+      display: block;
+      stroke: currentColor;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 1.8;
+      opacity: 0.66;
+      transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+
+    .stats-card.active .stats-chevron {
+      transform: rotate(180deg);
+      opacity: 0.9;
     }
 
     .stats-title {
@@ -560,6 +605,101 @@
       letter-spacing: 0.18em;
       text-transform: uppercase;
       color: rgba(226, 233, 255, 0.58);
+    }
+
+    .stats-popover {
+      top: calc(100% + 8px);
+      right: 0;
+      width: min(420px, calc(100vw - 44px));
+      padding: 14px;
+      border-radius: 24px;
+      opacity: 0;
+      transform: translateY(-8px) scale(0.98);
+      pointer-events: none;
+      transition: opacity 0.22s ease, transform 0.22s ease;
+    }
+
+    .stats-popover.open {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+      pointer-events: auto;
+    }
+
+    .stats-popover-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .stats-popover-title {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      color: rgba(226, 233, 255, 0.58);
+      margin-bottom: 4px;
+    }
+
+    .stats-popover-summary {
+      font-size: 13px;
+      color: rgba(243, 247, 255, 0.92);
+    }
+
+    .stats-table-wrap {
+      max-height: min(52vh, 420px);
+      overflow: auto;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .stats-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .stats-table thead th {
+      position: sticky;
+      top: 0;
+      z-index: 1;
+      padding: 12px 14px;
+      background: rgba(7, 11, 20, 0.92);
+      text-align: left;
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.16em;
+      text-transform: uppercase;
+      color: rgba(226, 233, 255, 0.52);
+    }
+
+    .stats-table tbody td {
+      padding: 12px 14px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+      font-size: 13px;
+      color: rgba(243, 247, 255, 0.9);
+      vertical-align: top;
+    }
+
+    .stats-table tbody tr:first-child td {
+      border-top: 0;
+    }
+
+    .stats-table tbody td.country-cell {
+      width: 42%;
+      color: rgba(243, 247, 255, 0.96);
+    }
+
+    .stats-table tbody td.city-cell {
+      color: rgba(226, 233, 255, 0.78);
+    }
+
+    .stats-empty {
+      padding: 22px 16px;
+      font-size: 12px;
+      line-height: 1.55;
+      color: rgba(226, 233, 255, 0.56);
     }
 
     .footer {
@@ -645,26 +785,6 @@
       gap: 10px;
     }
 
-    .search-divider {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-      margin-top: 2px;
-      color: rgba(226, 233, 255, 0.48);
-      font-size: 10px;
-      font-weight: 600;
-      letter-spacing: 0.18em;
-      text-transform: uppercase;
-    }
-
-    .search-divider::before,
-    .search-divider::after {
-      content: "";
-      flex: 1;
-      height: 1px;
-      background: rgba(255, 255, 255, 0.08);
-    }
-
     .search-grid {
       display: grid;
       grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -697,6 +817,71 @@
 
     .search-field input::placeholder {
       color: rgba(226, 233, 255, 0.32);
+    }
+
+    .search-advanced {
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.03);
+      overflow: hidden;
+    }
+
+    .search-advanced-toggle {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      padding: 12px 14px;
+      cursor: pointer;
+      list-style: none;
+    }
+
+    .search-advanced-toggle::-webkit-details-marker {
+      display: none;
+    }
+
+    .search-advanced-copy {
+      display: grid;
+      gap: 3px;
+      min-width: 0;
+    }
+
+    .search-advanced-copy strong {
+      font-size: 10px;
+      font-weight: 600;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: rgba(243, 247, 255, 0.92);
+    }
+
+    .search-advanced-copy span {
+      font-size: 12px;
+      line-height: 1.45;
+      color: rgba(226, 233, 255, 0.56);
+    }
+
+    .search-advanced-icon {
+      width: 14px;
+      height: 14px;
+      flex: 0 0 auto;
+      stroke: currentColor;
+      fill: none;
+      stroke-linecap: round;
+      stroke-linejoin: round;
+      stroke-width: 1.8;
+      color: rgba(226, 233, 255, 0.64);
+      transition: transform 0.2s ease;
+    }
+
+    .search-advanced[open] .search-advanced-icon {
+      transform: rotate(180deg);
+    }
+
+    .search-advanced-body {
+      display: grid;
+      gap: 10px;
+      padding: 12px 14px 14px;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
     }
 
     .search-submit {
@@ -1126,6 +1311,7 @@
     html[data-theme="light"] .menu-popover,
     html[data-theme="light"] .status-toast,
     html[data-theme="light"] .stats-card,
+    html[data-theme="light"] .stats-popover,
     html[data-theme="light"] .panel,
     html[data-theme="light"] .panel-upload,
     html[data-theme="light"] .lightbox-content,
@@ -1152,6 +1338,8 @@
 
     html[data-theme="light"] .dock-button:hover,
     html[data-theme="light"] .dock-button.active,
+    html[data-theme="light"] .stats-card:hover,
+    html[data-theme="light"] .stats-card.active,
     html[data-theme="light"] .menu-button:hover,
     html[data-theme="light"] .menu-button:focus-visible {
       border-color: rgba(15, 23, 42, 0.22);
@@ -1193,11 +1381,14 @@
     }
 
     html[data-theme="light"] .search-subtitle,
+    html[data-theme="light"] .search-advanced-copy span,
     html[data-theme="light"] .search-message,
     html[data-theme="light"] .search-result span,
     html[data-theme="light"] .panel-meta,
     html[data-theme="light"] .panel-upload span,
-    html[data-theme="light"] .photo-grid.empty::before {
+    html[data-theme="light"] .photo-grid.empty::before,
+    html[data-theme="light"] .stats-empty,
+    html[data-theme="light"] .stats-table tbody td.city-cell {
       color: rgba(15, 23, 42, 0.58);
     }
 
@@ -1229,13 +1420,36 @@
       color: rgba(15, 23, 42, 0.34);
     }
 
-    html[data-theme="light"] .search-divider {
-      color: rgba(15, 23, 42, 0.5);
+    html[data-theme="light"] .search-advanced {
+      border-color: rgba(15, 23, 42, 0.1);
+      background: rgba(15, 23, 42, 0.03);
     }
 
-    html[data-theme="light"] .search-divider::before,
-    html[data-theme="light"] .search-divider::after {
-      background: rgba(15, 23, 42, 0.08);
+    html[data-theme="light"] .search-advanced-copy strong,
+    html[data-theme="light"] .stats-popover-summary,
+    html[data-theme="light"] .stats-table tbody td.country-cell {
+      color: rgba(15, 23, 42, 0.92);
+    }
+
+    html[data-theme="light"] .search-advanced-body,
+    html[data-theme="light"] .stats-table tbody td {
+      border-top-color: rgba(15, 23, 42, 0.08);
+    }
+
+    html[data-theme="light"] .search-advanced-icon,
+    html[data-theme="light"] .stats-chevron,
+    html[data-theme="light"] .stats-popover-title,
+    html[data-theme="light"] .stats-table thead th {
+      color: rgba(15, 23, 42, 0.56);
+    }
+
+    html[data-theme="light"] .stats-table-wrap {
+      border-color: rgba(15, 23, 42, 0.08);
+      background: rgba(15, 23, 42, 0.03);
+    }
+
+    html[data-theme="light"] .stats-table thead th {
+      background: rgba(255, 255, 255, 0.92);
     }
 
     html[data-theme="light"] .search-submit {
@@ -1329,7 +1543,7 @@
 
     @media (max-width: 720px) {
       .control-hud,
-      .stats-card {
+      .stats-hud {
         top: 14px;
       }
 
@@ -1342,9 +1556,12 @@
         padding: 7px;
       }
 
-      .stats-card {
+      .stats-hud {
         right: 14px;
         left: auto;
+      }
+
+      .stats-card {
         gap: 10px;
         padding: 9px 12px;
       }
@@ -1363,6 +1580,10 @@
 
       .stat-value {
         font-size: 18px;
+      }
+
+      .stats-popover {
+        width: min(360px, calc(100vw - 28px));
       }
 
       .menu-popover {
@@ -1484,8 +1705,8 @@
     <section id="search-sheet" class="search-sheet" hidden aria-hidden="true">
       <div class="search-header">
         <div>
-          <h3 class="search-title">Add City via Geoapify</h3>
-          <p class="search-subtitle">Search real cities and pin their exact coordinates to the globe.</p>
+          <h3 class="search-title">Add City</h3>
+          <p class="search-subtitle">Search for a city and pin its exact coordinates to the globe.</p>
         </div>
         <button id="search-close" class="search-close" type="button" aria-label="Close city search">×</button>
       </div>
@@ -1496,26 +1717,38 @@
           <input id="place-query" type="text" autocomplete="off" placeholder="Search for a city" />
         </div>
 
-        <div class="search-divider">Manual Placement</div>
+        <details id="advanced-search" class="search-advanced">
+          <summary class="search-advanced-toggle">
+            <span class="search-advanced-copy">
+              <strong>Advanced</strong>
+              <span>Enter a city name and coordinates manually</span>
+            </span>
+            <svg class="search-advanced-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M6 9l6 6 6-6"></path>
+            </svg>
+          </summary>
 
-        <div class="search-field">
-          <label for="manual-name">City Name</label>
-          <input id="manual-name" type="text" autocomplete="off" placeholder="Enter a city name" />
-        </div>
+          <div class="search-advanced-body">
+            <div class="search-field">
+              <label for="manual-name">City Name</label>
+              <input id="manual-name" type="text" autocomplete="off" placeholder="Enter a city name" />
+            </div>
 
-        <div class="search-grid">
-          <div class="search-field">
-            <label for="manual-lat">Latitude</label>
-            <input id="manual-lat" type="number" inputmode="decimal" step="0.0001" min="-90" max="90" placeholder="e.g. 40.7128" />
+            <div class="search-grid">
+              <div class="search-field">
+                <label for="manual-lat">Latitude</label>
+                <input id="manual-lat" type="number" inputmode="decimal" step="0.0001" min="-90" max="90" placeholder="e.g. 40.7128" />
+              </div>
+
+              <div class="search-field">
+                <label for="manual-lon">Longitude</label>
+                <input id="manual-lon" type="number" inputmode="decimal" step="0.0001" min="-180" max="180" placeholder="e.g. -74.0060" />
+              </div>
+            </div>
+
+            <button id="manual-add" class="search-submit" type="button">Add Manual City</button>
           </div>
-
-          <div class="search-field">
-            <label for="manual-lon">Longitude</label>
-            <input id="manual-lon" type="number" inputmode="decimal" step="0.0001" min="-180" max="180" placeholder="e.g. -74.0060" />
-          </div>
-        </div>
-
-        <button id="manual-add" class="search-submit" type="button">Add Manual City</button>
+        </details>
       </div>
 
       <div id="search-results" class="search-results empty">
@@ -1524,17 +1757,43 @@
     </section>
 
     <div id="status" class="status-toast" aria-live="polite" aria-atomic="true"></div>
-    <div class="stats-card" aria-live="polite">
-      <div class="stats-title">Visited</div>
-      <div class="stats-grid">
-        <div class="stat-block">
-          <span id="countries-count" class="stat-value">0</span>
-          <span class="stat-label">Countries</span>
+    <div class="stats-hud">
+      <button id="stats-trigger" class="stats-card" type="button" aria-live="polite" aria-haspopup="dialog" aria-expanded="false">
+        <div class="stats-title">Visited</div>
+        <div class="stats-grid">
+          <div class="stat-block">
+            <span id="countries-count" class="stat-value">0</span>
+            <span class="stat-label">Countries</span>
+          </div>
+          <span class="stats-divider" aria-hidden="true"></span>
+          <div class="stat-block">
+            <span id="cities-count" class="stat-value">0</span>
+            <span class="stat-label">Cities</span>
+          </div>
         </div>
-        <span class="stats-divider" aria-hidden="true"></span>
-        <div class="stat-block">
-          <span id="cities-count" class="stat-value">0</span>
-          <span class="stat-label">Cities</span>
+        <svg class="stats-chevron" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M8 10l4 4 4-4"></path>
+        </svg>
+      </button>
+
+      <div id="stats-popover" class="stats-popover" hidden aria-hidden="true">
+        <div class="stats-popover-header">
+          <div>
+            <div class="stats-popover-title">Visited Places</div>
+            <div id="stats-summary" class="stats-popover-summary">0 countries · 0 cities</div>
+          </div>
+        </div>
+        <div class="stats-table-wrap">
+          <table class="stats-table">
+            <thead>
+              <tr>
+                <th scope="col">Country</th>
+                <th scope="col">City</th>
+              </tr>
+            </thead>
+            <tbody id="stats-table-body"></tbody>
+          </table>
+          <div id="stats-empty" class="stats-empty" hidden>No cities added yet.</div>
         </div>
       </div>
     </div>
@@ -1634,6 +1893,12 @@
       const controlMenu = document.getElementById("control-menu");
       const controlHud = document.querySelector(".control-hud");
       const statusChip = document.getElementById("status");
+      const statsHud = document.querySelector(".stats-hud");
+      const statsTrigger = document.getElementById("stats-trigger");
+      const statsPopover = document.getElementById("stats-popover");
+      const statsSummary = document.getElementById("stats-summary");
+      const statsTableBody = document.getElementById("stats-table-body");
+      const statsEmpty = document.getElementById("stats-empty");
       const countriesCount = document.getElementById("countries-count");
       const citiesCount = document.getElementById("cities-count");
       const lightbox = document.getElementById("lightbox");
@@ -1642,6 +1907,7 @@
       const searchSheet = document.getElementById("search-sheet");
       const searchCloseButton = document.getElementById("search-close");
       const placeQueryInput = document.getElementById("place-query");
+      const advancedSearch = document.getElementById("advanced-search");
       const manualNameInput = document.getElementById("manual-name");
       const manualLatInput = document.getElementById("manual-lat");
       const manualLonInput = document.getElementById("manual-lon");
@@ -1700,6 +1966,7 @@
       let activeLocation = null;
       let searchSheetOpen = false;
       let menuOpen = false;
+      let statsOpen = false;
       let autoRotate = true;
       let currentTheme = "dark";
       let hasManualThemePreference = false;
@@ -1865,10 +2132,49 @@
         }
       }
 
+      function closeStatsPopover(options = {}) {
+        const { restoreFocus = false } = options;
+        if (!statsOpen) {
+          return;
+        }
+        statsOpen = false;
+        statsPopover.classList.remove("open");
+        statsPopover.setAttribute("aria-hidden", "true");
+        statsPopover.hidden = true;
+        statsTrigger.classList.remove("active");
+        statsTrigger.setAttribute("aria-expanded", "false");
+        if (restoreFocus) {
+          statsTrigger.focus();
+        }
+      }
+
+      function openStatsPopover() {
+        if (statsOpen) {
+          return;
+        }
+        closeControlMenu();
+        closeSearchSheet();
+        statsOpen = true;
+        statsPopover.hidden = false;
+        statsPopover.classList.add("open");
+        statsPopover.setAttribute("aria-hidden", "false");
+        statsTrigger.classList.add("active");
+        statsTrigger.setAttribute("aria-expanded", "true");
+      }
+
+      function toggleStatsPopover() {
+        if (statsOpen) {
+          closeStatsPopover({ restoreFocus: true });
+          return;
+        }
+        openStatsPopover();
+      }
+
       function openControlMenu() {
         if (menuOpen) {
           return;
         }
+        closeStatsPopover();
         menuOpen = true;
         controlMenu.hidden = false;
         controlMenu.classList.add("open");
@@ -2096,6 +2402,22 @@
         return getTerritoryCountryKey(location) || normalizeText(location.countryCode || location.countryName).toLowerCase();
       }
 
+      function titleCaseWords(value) {
+        return normalizeText(value)
+          .split(/[\s-]+/)
+          .filter(Boolean)
+          .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+          .join(" ");
+      }
+
+      function getLocationDisplayCountry(location) {
+        const territoryName = getTerritoryCountryKey(location);
+        if (territoryName) {
+          return titleCaseWords(territoryName);
+        }
+        return normalizeText(location.countryName) || normalizeText(location.countryCode).toUpperCase() || "Custom";
+      }
+
       function getLocationCityKey(location) {
         return `${normalizeText(location.name).toLowerCase()}|${getLocationCountryKey(location)}`;
       }
@@ -2309,6 +2631,7 @@
 
       function openSearchSheet() {
         closeControlMenu();
+        closeStatsPopover();
         searchSheetOpen = true;
         searchSheet.hidden = false;
         searchSheet.classList.add("open");
@@ -2322,6 +2645,7 @@
         searchSheet.classList.remove("open");
         searchSheet.setAttribute("aria-hidden", "true");
         searchSheet.hidden = true;
+        advancedSearch.open = false;
         updateToolbarState();
       }
 
@@ -2360,7 +2684,7 @@
 
       async function searchPlaces(query) {
         if (!GEOAPIFY_API_KEY) {
-          setSearchMessage("Geoapify API key not found. Start the local server that reads your .env file.", true);
+          setSearchMessage("City search is unavailable. Start the local server that reads your .env file.", true);
           return;
         }
 
@@ -2374,7 +2698,7 @@
         }
 
         placeSearchAbortController = new AbortController();
-        setSearchMessage("Searching Geoapify...");
+        setSearchMessage("Searching cities...");
 
         try {
           const url = new URL("https://api.geoapify.com/v1/geocode/autocomplete");
@@ -2391,8 +2715,7 @@
           const payload = await response.json();
 
           if (!response.ok) {
-            const errorMessage = payload?.message || `Geoapify request failed with ${response.status}.`;
-            setSearchMessage(errorMessage, true);
+            setSearchMessage(`City search failed with ${response.status}.`, true);
             return;
           }
 
@@ -2402,7 +2725,7 @@
             return;
           }
           console.error(error);
-          setSearchMessage("Geoapify search failed. Check the API key and network connection.", true);
+          setSearchMessage("City search failed. Check the API key and network connection.", true);
         }
       }
 
@@ -2520,6 +2843,45 @@
         flashSaved();
       }
 
+      function getVisitedRows() {
+        const rowsByKey = new Map();
+        allLocations.forEach((location) => {
+          const key = getLocationCityKey(location) || makeLocationSignature(location);
+          if (!rowsByKey.has(key)) {
+            rowsByKey.set(key, {
+              country: getLocationDisplayCountry(location),
+              city: normalizeText(location.name) || "Unnamed City"
+            });
+          }
+        });
+
+        return [...rowsByKey.values()].sort((left, right) =>
+          left.country.localeCompare(right.country) || left.city.localeCompare(right.city)
+        );
+      }
+
+      function renderVisitedTable(rows) {
+        statsTableBody.innerHTML = "";
+        if (!rows.length) {
+          statsEmpty.hidden = false;
+          return;
+        }
+
+        statsEmpty.hidden = true;
+        rows.forEach((row) => {
+          const tr = document.createElement("tr");
+          const countryCell = document.createElement("td");
+          countryCell.className = "country-cell";
+          countryCell.textContent = row.country;
+          const cityCell = document.createElement("td");
+          cityCell.className = "city-cell";
+          cityCell.textContent = row.city;
+          tr.appendChild(countryCell);
+          tr.appendChild(cityCell);
+          statsTableBody.appendChild(tr);
+        });
+      }
+
       function updateVisitedStats() {
         const uniqueCities = new Set();
         const uniqueCountries = new Set();
@@ -2538,6 +2900,8 @@
 
         citiesCount.textContent = String(uniqueCities.size);
         countriesCount.textContent = String(uniqueCountries.size);
+        statsSummary.textContent = `${uniqueCountries.size} ${uniqueCountries.size === 1 ? "country" : "countries"} · ${uniqueCities.size} ${uniqueCities.size === 1 ? "city" : "cities"}`;
+        renderVisitedTable(getVisitedRows());
       }
 
       function removeActiveLocation() {
@@ -2907,6 +3271,8 @@
         exportLocationsAsCsv();
       });
 
+      statsTrigger.addEventListener("click", toggleStatsPopover);
+
       resetCameraButton.addEventListener("click", () => {
         closeControlMenu();
         motion.basePhi = 0.24;
@@ -2973,11 +3339,11 @@
       });
 
       document.addEventListener("pointerdown", (event) => {
-        if (!menuOpen) {
-          return;
-        }
-        if (!controlHud.contains(event.target)) {
+        if (menuOpen && !controlHud.contains(event.target)) {
           closeControlMenu();
+        }
+        if (statsOpen && !statsHud.contains(event.target)) {
+          closeStatsPopover();
         }
       });
 
@@ -2997,6 +3363,8 @@
           if (lightbox.classList.contains("open")) {
             lightbox.classList.remove("open");
             lightbox.setAttribute("aria-hidden", "true");
+          } else if (statsOpen) {
+            closeStatsPopover({ restoreFocus: true });
           } else if (menuOpen) {
             closeControlMenu({ restoreFocus: true });
           } else if (searchSheetOpen) {
@@ -3043,7 +3411,7 @@
       setSearchMessage(
         GEOAPIFY_API_KEY
           ? "Search for a city to add it to the globe."
-          : "Geoapify API key not found. Run the local server that reads your .env file.",
+          : "City search is unavailable. Run the local server that reads your .env file.",
         !GEOAPIFY_API_KEY
       );
       updateToolbarState();
