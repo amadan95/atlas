@@ -159,21 +159,21 @@
       position: absolute;
       left: 0;
       top: 0;
-      width: 10px;
-      height: 10px;
+      width: 5px;
+      height: 5px;
       border-radius: 50%;
       transform: translate(-50%, -50%);
       background:
         radial-gradient(circle at 28% 28%, rgba(255, 255, 255, 1), var(--marker-color, #7ee7ff) 52%, rgba(126, 231, 255, 0) 72%);
       box-shadow:
         0 0 0 1px rgba(255, 255, 255, 0.28),
-        0 0 16px var(--marker-color, #7ee7ff);
+        0 0 7px var(--marker-color, #7ee7ff);
     }
 
     .marker-dot::after {
       content: "";
       position: absolute;
-      inset: -8px;
+      inset: -3px;
       border-radius: 50%;
       border: 1px solid rgba(255, 255, 255, 0.52);
       opacity: 0.45;
@@ -258,7 +258,7 @@
     .city-marker.selected .marker-dot {
       box-shadow:
         0 0 0 1px rgba(255, 255, 255, 0.42),
-        0 0 24px var(--marker-color, #7ee7ff);
+        0 0 11px var(--marker-color, #7ee7ff);
     }
 
     .city-marker.dimmed {
@@ -1311,7 +1311,7 @@
     html[data-theme="light"] .marker-dot {
       box-shadow:
         0 0 0 1px rgba(15, 23, 42, 0.18),
-        0 0 12px rgba(15, 23, 42, 0.08);
+        0 0 6px rgba(15, 23, 42, 0.08);
     }
 
     html[data-theme="light"] .marker-dot::after {
@@ -1711,6 +1711,9 @@
             <path d="M5 12h14"></path>
           </svg>
         </button>
+        <button id="autorotate-toggle" class="dock-button" type="button" aria-label="Pause rotation" data-tooltip="Pause rotation">
+          <span id="autorotate-toggle-icon" aria-hidden="true"></span>
+        </button>
         <button id="theme-toggle" class="dock-button" type="button" aria-label="Toggle theme" data-tooltip="Toggle theme">
           <span id="theme-toggle-icon" aria-hidden="true"></span>
         </button>
@@ -1746,13 +1749,6 @@
 
         <div class="menu-section">
           <div class="menu-section-title">View</div>
-          <button id="toggle-autorotate" class="menu-button" type="button" role="menuitem">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M20 12a8 8 0 1 1-2.34-5.66"></path>
-              <path d="M20 4v6h-6"></path>
-            </svg>
-            <span>Pause Auto Rotate</span>
-          </button>
           <button id="reset-camera" class="menu-button" type="button" role="menuitem">
             <svg viewBox="0 0 24 24" aria-hidden="true">
               <path d="M20 12a8 8 0 1 1-2.34-5.66"></path>
@@ -1945,11 +1941,12 @@
       const removeLocationButton = document.getElementById("remove-location");
       const saveIndicator = document.getElementById("save-indicator");
       const addLocationButton = document.getElementById("add-location");
+      const autorotateToggleButton = document.getElementById("autorotate-toggle");
+      const autorotateToggleIcon = document.getElementById("autorotate-toggle-icon");
       const importCsvButton = document.getElementById("import-csv");
       const exportCsvButton = document.getElementById("export-csv");
       const csvImportInput = document.getElementById("csv-import-input");
       const resetCameraButton = document.getElementById("reset-camera");
-      const toggleAutorotateButton = document.getElementById("toggle-autorotate");
       const themeToggleButton = document.getElementById("theme-toggle");
       const themeToggleIcon = document.getElementById("theme-toggle-icon");
       const menuTriggerButton = document.getElementById("menu-trigger");
@@ -1991,9 +1988,9 @@
       const THEME_GLOBE = {
         dark: {
           dark: 1,
-          mapBrightness: 1.38,
-          mapBaseBrightness: 0.05,
-          baseColor: [0.055, 0.072, 0.11],
+          mapBrightness: 1.54,
+          mapBaseBrightness: 0.12,
+          baseColor: [0.07, 0.09, 0.14],
           markerColor: [0.82, 0.9, 1],
           glowColor: [0.68, 0.78, 1]
         },
@@ -2010,7 +2007,12 @@
       const storedLocations = loadStorage(CUSTOM_LOCATION_KEY, []);
       const filteredStoredLocations = storedLocations.filter((location) => {
         const id = String(location.id || "");
-        return id.startsWith("geoapify-") || id.startsWith("geonames-") || id.startsWith("manual-");
+        return (
+          id.startsWith("geoapify-") ||
+          id.startsWith("geonames-") ||
+          id.startsWith("manual-") ||
+          id.startsWith("import-")
+        );
       });
       const needsColorRestore = filteredStoredLocations.some((location) => !location.color || location.color.toLowerCase() === "#111111");
       const customLocations = filteredStoredLocations.map((location, index) => ({
@@ -2137,6 +2139,23 @@
               <path d="M19 12h2.5"></path>
               <path d="M4.9 19.1l1.8-1.8"></path>
               <path d="M17.3 6.7l1.8-1.8"></path>
+            </svg>
+          `;
+        }
+
+        if (name === "pause") {
+          return `
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9 5.5v13"></path>
+              <path d="M15 5.5v13"></path>
+            </svg>
+          `;
+        }
+
+        if (name === "play") {
+          return `
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M8.5 6.5v11l8-5.5-8-5.5Z"></path>
             </svg>
           `;
         }
@@ -3051,8 +3070,10 @@
       function updateToolbarState() {
         addLocationButton.classList.toggle("active", searchSheetOpen);
         menuTriggerButton.classList.toggle("active", menuOpen);
-        toggleAutorotateButton.querySelector("span").textContent = autoRotate ? "Pause Auto Rotate" : "Resume Auto Rotate";
-        toggleAutorotateButton.setAttribute("aria-label", autoRotate ? "Pause auto rotate" : "Resume auto rotate");
+        autorotateToggleButton.classList.toggle("active", autoRotate);
+        autorotateToggleIcon.innerHTML = iconMarkup(autoRotate ? "pause" : "play");
+        autorotateToggleButton.setAttribute("aria-label", autoRotate ? "Pause rotation" : "Start rotation");
+        autorotateToggleButton.setAttribute("data-tooltip", autoRotate ? "Pause rotation" : "Start rotation");
 
         const nextTheme = currentTheme === "dark" ? "light" : "dark";
         themeToggleIcon.innerHTML = iconMarkup(nextTheme === "light" ? "sun" : "moon");
@@ -3162,7 +3183,7 @@
       function updateCityMarkers() {
         const hasSelection = Boolean(activeLocation);
         cityMarkers.forEach(({ location, el }) => {
-          const projected = projectPoint(latLonToVector(location.lat, location.lon, 1.01), 0.02);
+          const projected = projectPoint(latLonToVector(location.lat, location.lon, 1), 0.02);
           const isSelected = activeLocation?.id === location.id;
           el.classList.toggle("selected", isSelected);
           el.classList.toggle("dimmed", hasSelection && !isSelected);
@@ -3189,7 +3210,7 @@
               : baseMarkerColor;
           globeMarkers.push({
             location: [location.lat, location.lon],
-            size: isSelected ? 0.13 : hasSelection ? 0.052 : 0.075,
+            size: isSelected ? 0.072 : hasSelection ? 0.024 : 0.036,
             color: markerColor
           });
         });
@@ -3347,11 +3368,10 @@
         flashStatus("Camera reset", 1200);
       });
 
-      toggleAutorotateButton.addEventListener("click", () => {
-        closeControlMenu();
+      autorotateToggleButton.addEventListener("click", () => {
         autoRotate = !autoRotate;
         updateToolbarState();
-        flashStatus(autoRotate ? "Auto rotate on" : "Auto rotate paused", 1200);
+        flashStatus(autoRotate ? "Auto rotation on" : "Auto rotation paused", 1200);
       });
 
       themeToggleButton.addEventListener("click", () => {
